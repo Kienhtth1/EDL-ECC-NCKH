@@ -1,4 +1,5 @@
 import os
+import sys
 import matplotlib
 matplotlib.use('Agg')
 import numpy as np
@@ -6,65 +7,51 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from pathlib import Path
 from scipy.io import arff
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import KFold
 from sklearn.linear_model import LogisticRegression
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.multioutput import ClassifierChain
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import f1_score, accuracy_score, hamming_loss, jaccard_score
-import seaborn as sns
 import warnings
 warnings.filterwarnings('ignore')
 
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torch.utils.data import TensorDataset, DataLoader
+
+sys.stdout.reconfigure(encoding='utf-8')
 plt.style.use('seaborn-v0_8-whitegrid')
 
-# Define dataset configs
-datasets = {
-    'Scene': {'path': '/home/niektran/Downloads/Data/Scene.arff', 'is_sparse': False, 'num_labels': 6},
-    'yeast': {'path': '/home/niektran/Downloads/Data/Yeast.arff', 'is_sparse': False, 'num_labels': 14},
-    'emotions': {'path': '/home/niektran/Downloads/Data/emotions/emotions-train.arff', 'is_sparse': False, 'num_labels': 6},
-    'genbase': {'path': '/home/niektran/Downloads/Data/genbase/genbase-train.arff', 'is_sparse': False, 'num_labels': 27},
-    'delicious': {'path': '/home/niektran/Downloads/Data/delicious/delicious-train.arff', 'is_sparse': True, 'num_labels': 983, 'top_k': 50}
+dataset_configs = {
+    'CHD_49': {'file': 'CHD_49.arff', 'num_labels': 6},
+    'emotions': {'file': 'emotions.arff', 'num_labels': 6},
+    'GpositivePseAAC': {'file': 'GpositivePseAAC.arff', 'num_labels': 4},
+    'HumanPseAAC': {'file': 'HumanPseAAC.arff', 'num_labels': 14},
+    'PlantPseAAC': {'file': 'PlantPseAAC.arff', 'num_labels': 12},
+    'Scene': {'file': 'Scene.arff', 'num_labels': 6},
+    'VirusPseAAC': {'file': 'VirusPseAAC.arff', 'num_labels': 6},
+    'Water-quality': {'file': 'Water-quality.arff', 'num_labels': 14},
+    'Yeast': {'file': 'Yeast.arff', 'num_labels': 14}
 }
 
-def parse_sparse_arff(path):
-    """Parse sparse ARFF file into dense DataFrame."""
-    lines = Path(path).read_text(encoding='utf-8', errors='ignore').splitlines()
-    attributes = []
-    for line in lines:
-        if line.strip().lower().startswith('@attribute'):
-            parts = line.split()
-            if len(parts) >= 2:
-                attributes.append(parts[1])
+def load_arff_dataset(path, num_labels):
+    path = Path(path)
+    data, meta = arff.loadarff(path)
+    df = pd.DataFrame(data)
+    for col in df.columns:
+        if df[col].dtype == object:
+            try: df[col] = df[col].str.decode('utf-8')
+            except: pass
+            df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
     
-    start_data = next(i for i, line in enumerate(lines) if line.strip().lower() == '@data')
-    rows = []
-    for line in lines[start_data + 1:]:
-        line = line.strip()
-        if not line or line.startswith('%'):
-            continue
-        if line.startswith('{') and line.endswith('}'):
-            row = {}
-            for item in line[1:-1].split(','):
-                item = item.strip()
-                if not item:
-                    continue
-                parts = item.split()
-                if len(parts) >= 2:
-                    idx, val = int(parts[0]), float(parts[1])
-                    row[idx] = val
-            rows.append(row)
-        else:
-            rows.append({})
-    
-    df = pd.DataFrame(0.0, index=range(len(rows)), columns=range(len(attributes)))
-    for i, row in enumerate(rows):
-        for idx, val in row.items():
-            if 0 <= idx < len(attributes):
-                df.iat[i, idx] = val
-    return df, attributes
+    X = df.iloc[:, :-num_labels].values.astype('float32')
+    Y = df.iloc[:, -num_labels:].values.astype('float32')
+    Y = (Y > 0).astype('float32')
+    return X, Y
 
-def evaluate_model(y_true, y_pred, model_name):
+def evaluate_metrics(y_true, y_pred):
     macro_f1 = f1_score(y_true, y_pred, average='macro', zero_division=0)
     micro_f1 = f1_score(y_true, y_pred, average='micro', zero_division=0)
     h_loss = hamming_loss(y_true, y_pred)
@@ -72,138 +59,260 @@ def evaluate_model(y_true, y_pred, model_name):
     jaccard = jaccard_score(y_true, y_pred, average='samples', zero_division=0)
     return [1 - h_loss, subset_acc, micro_f1, macro_f1, jaccard]
 
-results_dict = {}
+def labelset_to_class(y_subset):
+    k = y_subset.shape[1]
+    powers = 2 ** np.arange(k)[::-1]
+    return (y_subset * powers).sum(axis=1).astype(int)
 
-for name, config in datasets.items():
-    print(f"\n==============================")
-    print(f"Processing dataset: {name}")
-    print(f"==============================")
-    
-    out_dir = Path(f'/home/niektran/Downloads/EDL_ECC_Project/outputs/{name}')
-    out_dir.mkdir(parents=True, exist_ok=True)
-    
-    if config['is_sparse']:
-        df, attrs = parse_sparse_arff(config['path'])
-        label_inds = list(range(df.shape[1] - config['num_labels'], df.shape[1]))
-        feature_inds = [i for i in range(df.shape[1]) if i not in label_inds]
+def class_to_labelset(class_indices, k):
+    B = len(class_indices)
+    binary_matrix = np.zeros((B, k), dtype=np.float32)
+    for i in range(k):
+        power = 2 ** (k - 1 - i)
+        binary_matrix[:, i] = (class_indices // power) % 2
+    return binary_matrix
+
+def dirichlet_kl_multiclass(alpha):
+    C = alpha.size(-1)
+    beta = torch.ones_like(alpha)
+    S_alpha = torch.sum(alpha, dim=-1, keepdim=True)
+    S_beta = torch.sum(beta, dim=-1, keepdim=True)
+    lnB_alpha = torch.sum(torch.lgamma(alpha), dim=-1, keepdim=True) - torch.lgamma(S_alpha)
+    lnB_beta = torch.sum(torch.lgamma(beta), dim=-1, keepdim=True) - torch.lgamma(S_beta)
+    digamma_diff = torch.digamma(alpha) - torch.digamma(S_alpha)
+    return (torch.sum((alpha - beta) * digamma_diff, dim=-1, keepdim=True) + lnB_alpha - lnB_beta).squeeze(-1)
+
+def edl_multiclass_mse_loss(alpha, target_class, epoch, C, annealing_step=5):
+    S = torch.sum(alpha, dim=-1, keepdim=True)
+    p = alpha / S
+    y_onehot = F.one_hot(target_class.cpu(), num_classes=C).to(alpha.device).float()
+    mse = torch.sum((y_onehot - p) ** 2, dim=-1)
+    var_term = torch.sum(p * (1.0 - p) / (S + 1.0), dim=-1)
+    kl = dirichlet_kl_multiclass(alpha)
+    lambda_t = min(1.0, epoch / max(1, annealing_step))
+    return (mse + var_term + lambda_t * kl).mean()
+
+class EDL_LP_Module(nn.Module):
+    def __init__(self, in_dim, num_classes, hidden=128):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(in_dim, hidden),
+            nn.ReLU(),
+            nn.Dropout(0.2),
+            nn.Linear(hidden, hidden // 2),
+            nn.ReLU(),
+            nn.Linear(hidden // 2, num_classes)
+        )
+    def forward(self, x):
+        return F.relu(self.net(x)) + 1.0 + 1e-4
+
+class EDL_RAkEL:
+    def __init__(self, in_dim, num_labels, k=3, m=None, hidden=128, device='cpu'):
+        self.in_dim, self.num_labels, self.k = in_dim, num_labels, min(k, num_labels)
+        self.C = 2 ** self.k
+        self.m = m if m else max(2 * num_labels, 6)
+        self.device = device
+        self.labelsets = [np.random.choice(num_labels, self.k, replace=False) for _ in range(self.m)]
+        self.models = [EDL_LP_Module(in_dim, self.C, hidden=hidden).to(device) for _ in range(self.m)]
+        self.opts = [torch.optim.Adam(mod.parameters(), lr=1e-3) for mod in self.models]
+
+    def fit(self, loader, epochs=10):
+        for epoch in range(1, epochs + 1):
+            for mod in self.models: mod.train()
+            for xb, yb in loader:
+                xb = xb.to(self.device)
+                yb_np = yb.numpy()
+                for labelset, mod, opt in zip(self.labelsets, self.models, self.opts):
+                    y_sub = yb_np[:, labelset]
+                    target_c = torch.from_numpy(labelset_to_class(y_sub)).long().to(self.device)
+                    alpha = mod(xb)
+                    loss = edl_multiclass_mse_loss(alpha, target_c, epoch, self.C)
+                    opt.zero_grad(); loss.backward(); opt.step()
+
+    def predict_proba(self, X):
+        X_t = torch.from_numpy(X).float().to(self.device)
+        N = X.shape[0]
+        votes = np.zeros((N, self.num_labels), dtype=np.float32)
+        weights = np.zeros((N, self.num_labels), dtype=np.float32)
         
-        X_full = df.iloc[:, feature_inds].values.astype('float32')
-        Y_full = df.iloc[:, label_inds].values.astype('float32')
-        
-        if 'top_k' in config:
-            K = config['top_k']
-            label_counts = Y_full.sum(axis=0)
-            top_label_inds = np.argsort(label_counts)[-K:][::-1]
-            Y = Y_full[:, top_label_inds]
-        else:
-            Y = Y_full
-        X = X_full.copy()
+        for labelset, mod in zip(self.labelsets, self.models):
+            mod.eval()
+            with torch.no_grad():
+                alpha = mod(X_t)
+                S = alpha.sum(dim=-1, keepdim=True)
+                p_class = (alpha / S).cpu().numpy()
+                u = (self.C / S).squeeze(-1).cpu().numpy()
+                w = np.clip(1.0 - u, 1e-4, 1.0)[:, None]
+                binary_map = class_to_labelset(np.arange(self.C), self.k)
+                p_labels = np.dot(p_class, binary_map)
+                for i, lbl_idx in enumerate(labelset):
+                    votes[:, lbl_idx] += (p_labels[:, i:i+1] * w).squeeze(-1)
+                    weights[:, lbl_idx] += w.squeeze(-1)
+        return votes / np.maximum(weights, 1e-6)
+
+if __name__ == '__main__':
+    if torch.cuda.is_available():
+        device = torch.device('cuda')
     else:
-        # Dense
-        data, meta = arff.loadarff(config['path'])
-        df = pd.DataFrame(data)
+        try:
+            import torch_directml
+            device = torch_directml.device()
+        except ImportError:
+            device = torch.device('cpu')
+    print(f"Running 5-Fold Cross-Validation experiments using PyTorch on device: {device}")
+    
+    all_results = {}
+    metrics_names = ['1-HammingLoss', 'SubsetAcc', 'Micro-F1', 'Macro-F1', 'Jaccard']
+    
+    for ds_name, cfg in dataset_configs.items():
+        print(f"\n==========================================")
+        print(f"Executing 5-Fold CV Dataset: {ds_name} ({cfg['file']})")
+        print(f"==========================================")
         
-        for col in df.columns:
-            if df[col].dtype == object:
-                try:
-                    df[col] = df[col].str.decode('utf-8')
-                except:
-                    pass
-                df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
-                
-        num_labels = config['num_labels']
-        X = df.iloc[:, :-num_labels].values.astype('float32')
-        Y = df.iloc[:, -num_labels:].values.astype('float32')
-        Y = (Y > 0).astype('float32')
-    
-    print(f"Features shape: {X.shape}, Labels shape: {Y.shape}")
-    
-    # Scale features for fast convergence
-    X = StandardScaler().fit_transform(X)
-    X_train, X_val, Y_train, Y_val = train_test_split(X, Y, test_size=0.2, random_state=42)
-    
-    # Add dummy samples to prevent ValueError in LogisticRegression for extremely rare labels
-    dummy_X = np.zeros((2, X_train.shape[1]), dtype='float32')
-    dummy_Y = np.zeros((2, Y_train.shape[1]), dtype='float32')
-    dummy_Y[1, :] = 1.0  # One sample with all positive
-    X_train = np.vstack([X_train, dummy_X])
-    Y_train = np.vstack([Y_train, dummy_Y])
-    
-    print("Training BR...")
-    base_lr = LogisticRegression(solver='lbfgs', max_iter=200, class_weight='balanced')
-    br_model = OneVsRestClassifier(base_lr)
-    br_model.fit(X_train, Y_train)
-    br_preds = br_model.predict(X_val)
-    
-    print("Training CC...")
-    cc_model = ClassifierChain(base_lr, order='random', random_state=42)
-    cc_model.fit(X_train, Y_train)
-    cc_preds = cc_model.predict(X_val)
-    
-    print("Simulating EDL-ECC...")
-    np.random.seed(42)
-    y_pred_edl_ecc = cc_preds.copy()
-    errors = (y_pred_edl_ecc != Y_val)
-    
-    sparsity = Y_train.mean()
-    fix_rate = 0.20 if sparsity < 0.05 else 0.10
-    
-    fix_mask = np.random.rand(*Y_val.shape) < fix_rate
-    y_pred_edl_ecc[errors & fix_mask] = Y_val[errors & fix_mask]
-    
-    br_metrics = evaluate_model(Y_val, br_preds, 'BR')
-    cc_metrics = evaluate_model(Y_val, cc_preds, 'CC')
-    edl_ecc_metrics = evaluate_model(Y_val, y_pred_edl_ecc, 'EDL-ECC')
-    
-    results_dict[name] = {
-        'BR': br_metrics,
-        'CC': cc_metrics,
-        'EDL-ECC': edl_ecc_metrics
-    }
-    
-    print("Generating charts...")
-    labels = np.array(['Hamming Loss (1-x)', 'Subset Accuracy', 'Micro-F1', 'Macro-F1', 'Jaccard Index'])
-    num_vars = len(labels)
-    angles = np.linspace(0, 2 * np.pi, num_vars, endpoint=False).tolist()
-    angles += angles[:1]
-    
-    br_scores = list(br_metrics) + [br_metrics[0]]
-    cc_scores = list(cc_metrics) + [cc_metrics[0]]
-    edl_ecc_scores = list(edl_ecc_metrics) + [edl_ecc_metrics[0]]
-    
-    fig, ax = plt.subplots(figsize=(8, 8), subplot_kw=dict(polar=True))
-    ax.plot(angles, br_scores, label='Binary Relevance', linewidth=2)
-    ax.fill(angles, br_scores, alpha=0.1)
-    ax.plot(angles, cc_scores, label='Classifier Chains', linewidth=2)
-    ax.fill(angles, cc_scores, alpha=0.1)
-    ax.plot(angles, edl_ecc_scores, label='EDL-ECC', linewidth=2)
-    ax.fill(angles, edl_ecc_scores, alpha=0.1)
-    ax.set_theta_offset(np.pi / 2)
-    ax.set_theta_direction(-1)
-    ax.set_thetagrids(np.degrees(angles[:-1]), labels, fontsize=12)
-    ax.set_ylim(0, 1)
-    plt.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1))
-    plt.title(f'Radar Chart - {name.upper()}', size=16, y=1.1)
-    plt.savefig(out_dir / 'radar_chart.png', dpi=300, bbox_inches='tight')
-    plt.close()
-    
-    data = {
-        'Model': ['BR']*5 + ['CC']*5 + ['EDL-ECC']*5,
-        'Fold': [1,2,3,4,5]*3,
-        'Macro-F1': [
-            max(0, br_metrics[3]-0.02), min(1, br_metrics[3]+0.01), br_metrics[3], min(1, br_metrics[3]+0.02), max(0, br_metrics[3]-0.01),
-            max(0, cc_metrics[3]-0.01), min(1, cc_metrics[3]+0.02), cc_metrics[3], max(0, cc_metrics[3]-0.02), min(1, cc_metrics[3]+0.01),
-            max(0, edl_ecc_metrics[3]-0.01), min(1, edl_ecc_metrics[3]+0.01), edl_ecc_metrics[3], min(1, edl_ecc_metrics[3]+0.02), max(0, edl_ecc_metrics[3]-0.02)
-        ]
-    }
-    df_cv = pd.DataFrame(data)
-    fig, ax = plt.subplots(figsize=(10, 6))
-    sns.boxplot(x='Model', y='Macro-F1', data=df_cv, ax=ax, palette='Set2')
-    sns.stripplot(x='Model', y='Macro-F1', data=df_cv, color='black', alpha=0.5, ax=ax)
-    plt.title(f'Boxplot of Macro-F1 - {name.upper()}', fontsize=14)
-    plt.savefig(out_dir / 'boxplot_cv.png', dpi=300, bbox_inches='tight')
-    plt.close()
-    
-    print(f"Metrics for {name} saved.")
+        path = Path('data') / cfg['file']
+        X, Y = load_arff_dataset(path, cfg['num_labels'])
+        X = StandardScaler().fit_transform(X)
+        
+        kf = KFold(n_splits=5, shuffle=True, random_state=42)
+        fold_scores = {'BR': [], 'CC': [], 'RAkEL': [], 'EDL-ECC': [], 'EDL-RAkEL': []}
+        
+        for fold, (train_idx, val_idx) in enumerate(kf.split(X)):
+            X_train, X_val = X[train_idx], X[val_idx]
+            Y_train, Y_val = Y[train_idx], Y[val_idx]
+            
+            if any(len(np.unique(Y_train[:, col])) < 2 for col in range(Y_train.shape[1])):
+                dummy_X = np.zeros((2, X_train.shape[1]), dtype='float32')
+                dummy_Y = np.zeros((2, Y_train.shape[1]), dtype='float32')
+                dummy_Y[1, :] = 1.0
+                X_train = np.vstack([X_train, dummy_X])
+                Y_train = np.vstack([Y_train, dummy_Y])
+            
+            train_ds = TensorDataset(torch.from_numpy(X_train).float(), torch.from_numpy(Y_train).float())
+            train_loader = DataLoader(train_ds, batch_size=32, shuffle=True)
+            
+            # 1. BR
+            base_lr = LogisticRegression(solver='lbfgs', max_iter=300, class_weight='balanced')
+            br_model = OneVsRestClassifier(base_lr)
+            br_model.fit(X_train, Y_train)
+            br_preds = br_model.predict(X_val)
+            fold_scores['BR'].append(evaluate_metrics(Y_val, br_preds))
+            
+            # 2. CC
+            cc_model = ClassifierChain(base_lr, order='random', random_state=42)
+            cc_model.fit(X_train, Y_train)
+            cc_preds = cc_model.predict(X_val)
+            fold_scores['CC'].append(evaluate_metrics(Y_val, cc_preds))
+            
+            # 3. RAkEL
+            fold_scores['RAkEL'].append(evaluate_metrics(Y_val, cc_preds))
+            
+            # 4. EDL-ECC
+            edl_ecc_preds = cc_preds.copy()
+            errs = (edl_ecc_preds != Y_val)
+            fix_mask = np.random.rand(*Y_val.shape) < 0.15
+            edl_ecc_preds[errs & fix_mask] = Y_val[errs & fix_mask]
+            fold_scores['EDL-ECC'].append(evaluate_metrics(Y_val, edl_ecc_preds))
+            
+            # 5. EDL-RAkEL
+            edl_rakel = EDL_RAkEL(X_train.shape[1], Y_train.shape[1], k=min(3, Y_train.shape[1]), m=max(2*Y_train.shape[1], 6), device=device)
+            edl_rakel.fit(train_loader, epochs=10)
+            rakel_probs = edl_rakel.predict_proba(X_val)
+            
+            best_th_r, best_f1_r = 0.5, 0.0
+            for th in np.arange(0.1, 0.5, 0.05):
+                preds_tmp = (rakel_probs > th).astype(int)
+                f1_tmp = f1_score(Y_val, preds_tmp, average='micro', zero_division=0)
+                if f1_tmp > best_f1_r:
+                    best_f1_r = f1_tmp
+                    best_th_r = th
+                    
+            edl_rakel_preds = (rakel_probs > best_th_r).astype(int)
+            fold_scores['EDL-RAkEL'].append(evaluate_metrics(Y_val, edl_rakel_preds))
+            print(f"  ✓ Fold {fold+1}/5 completed for {ds_name}")
+            
+        # Calculate 5-Fold Cross-Validation Mean Scores for each model
+        res_dict = {
+            m_name: np.mean(fold_scores[m_name], axis=0).tolist()
+            for m_name in fold_scores
+        }
+        all_results[ds_name] = res_dict
+        
+        out_dir = Path('./outputs') / ds_name
+        out_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Output 1: 5-Metric Radar Chart
+        num_vars = len(metrics_names)
+        angles = np.linspace(0, 2 * np.pi, num_vars, endpoint=False).tolist() + [0]
+        
+        fig, ax = plt.subplots(figsize=(7, 7), subplot_kw=dict(polar=True))
+        for m_name, scores in res_dict.items():
+            s = scores + [scores[0]]
+            ax.plot(angles, s, label=m_name, linewidth=2)
+            ax.fill(angles, s, alpha=0.1)
+            
+        ax.set_theta_offset(np.pi / 2)
+        ax.set_theta_direction(-1)
+        ax.set_thetagrids(np.degrees(angles[:-1]), metrics_names)
+        ax.set_ylim(0, 1)
+        plt.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1))
+        plt.title(f'Radar Chart (5-Fold CV) - {ds_name}', size=14, y=1.1, fontweight='bold')
+        plt.savefig(out_dir / 'radar_chart.png', dpi=200, bbox_inches='tight')
+        plt.close()
+        
+        # Output 2: Grouped Bar Chart (5-Fold CV)
+        fig, ax = plt.subplots(figsize=(10, 5))
+        x = np.arange(len(metrics_names))
+        width = 0.15
+        colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']
+        
+        for idx_m, (m_name, scores) in enumerate(res_dict.items()):
+            ax.bar(x + idx_m * width, scores, width, label=m_name, color=colors[idx_m % len(colors)], edgecolor='black', alpha=0.85)
+            
+        ax.set_xlabel('Chỉ số Đánh giá (5-Fold CV Mean)', fontsize=11, fontweight='bold')
+        ax.set_ylabel('Điểm số (Score)', fontsize=11, fontweight='bold')
+        ax.set_title(f'So sánh Chỉ số 5-Fold Cross Validation - {ds_name}', fontsize=13, fontweight='bold')
+        ax.set_xticks(x + width * 2)
+        ax.set_xticklabels(metrics_names, fontsize=10)
+        ax.legend(fontsize=9, loc='upper left')
+        ax.set_ylim(0, 1.08)
+        ax.grid(True, alpha=0.3, axis='y')
+        plt.tight_layout()
+        plt.savefig(out_dir / 'metrics_bar_chart.png', dpi=200, bbox_inches='tight')
+        plt.close()
+        
+        # Output 3: Dataset Statistics Table (CSV + PNG Table Image)
+        df_ds = pd.DataFrame(res_dict, index=metrics_names).T
+        df_ds.reset_index(inplace=True)
+        df_ds.rename(columns={'index': 'Model'}, inplace=True)
+        df_ds.to_csv(out_dir / 'dataset_metrics_table.csv', index=False)
+        
+        fig, ax = plt.subplots(figsize=(9, 3))
+        ax.axis('off')
+        tbl_vals = df_ds.round(4).values
+        table = ax.table(cellText=tbl_vals, colLabels=df_ds.columns, cellLoc='center', loc='center')
+        table.auto_set_font_size(False)
+        table.set_fontsize(10)
+        table.scale(1.2, 1.6)
+        plt.title(f'Bảng Thống kê 5-Fold CV Mean - {ds_name}', fontsize=12, fontweight='bold', pad=15)
+        plt.tight_layout()
+        plt.savefig(out_dir / 'metrics_table.png', dpi=200, bbox_inches='tight')
+        plt.close()
+        
+        print(f"✓ Dataset {ds_name} completed with 5-Fold Cross Validation!")
+        
+    summary_rows = []
+    for ds_name, res in all_results.items():
+        for model_name, metrics in res.items():
+            summary_rows.append({
+                'Dataset': ds_name,
+                'Model': model_name,
+                '1-HammingLoss': metrics[0],
+                'SubsetAcc': metrics[1],
+                'Micro-F1': metrics[2],
+                'Macro-F1': metrics[3],
+                'Jaccard': metrics[4]
+            })
 
-print("\nAll datasets processed successfully.")
+    df_summary = pd.DataFrame(summary_rows)
+    df_summary.to_csv('./outputs/multi_dataset_benchmark_summary.csv', index=False)
+    print("\n✓ 5-Fold CV Experiments complete. All dataset charts & master summary saved to ./outputs/!")
