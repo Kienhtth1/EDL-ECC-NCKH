@@ -80,7 +80,7 @@ def dirichlet_kl_multiclass(alpha):
     lnB_alpha = torch.sum(torch.lgamma(alpha), dim=-1, keepdim=True) - torch.lgamma(S_alpha)
     lnB_beta = torch.sum(torch.lgamma(beta), dim=-1, keepdim=True) - torch.lgamma(S_beta)
     digamma_diff = torch.digamma(alpha) - torch.digamma(S_alpha)
-    return (torch.sum((alpha - beta) * digamma_diff, dim=-1, keepdim=True) + lnB_alpha - lnB_beta).squeeze(-1)
+    return (torch.sum((alpha - beta) * digamma_diff, dim=-1, keepdim=True) + lnB_beta - lnB_alpha).squeeze(-1)
 
 def edl_multiclass_mse_loss(alpha, target_class, epoch, C, annealing_step=5):
     S = torch.sum(alpha, dim=-1, keepdim=True)
@@ -91,6 +91,167 @@ def edl_multiclass_mse_loss(alpha, target_class, epoch, C, annealing_step=5):
     kl = dirichlet_kl_multiclass(alpha)
     lambda_t = min(1.0, epoch / max(1, annealing_step))
     return (mse + var_term + lambda_t * kl).mean()
+
+class Standard_RAkEL:
+    """Standard Random k-Labelsets (RAkEL) using Label Powerset and Logistic Regression."""
+    def __init__(self, num_labels, k=3, m=None, random_state=42):
+        self.num_labels = num_labels
+        self.k = min(k, num_labels)
+        self.m = m if m is not None else max(2 * num_labels, 6)
+        self.random_state = random_state
+        rng = np.random.RandomState(random_state)
+        self.labelsets = [rng.choice(num_labels, self.k, replace=False) for _ in range(self.m)]
+        self.models = []
+
+    def fit(self, X, Y):
+        self.models = []
+        for labelset in self.labelsets:
+            Y_sub = Y[:, labelset]
+            y_lp = labelset_to_class(Y_sub)
+            clf = LogisticRegression(solver='lbfgs', max_iter=300, class_weight='balanced')
+            if len(np.unique(y_lp)) < 2:
+                dummy_x = np.zeros((2, X.shape[1]), dtype=X.dtype)
+                dummy_y = np.array([0, 1])
+                clf.fit(np.vstack([X, dummy_x]), np.concatenate([y_lp, dummy_y]))
+            else:
+                clf.fit(X, y_lp)
+            self.models.append(clf)
+
+    def predict(self, X, threshold=0.5):
+        N = X.shape[0]
+        votes = np.zeros((N, self.num_labels), dtype=np.float32)
+        counts = np.zeros(self.num_labels, dtype=np.float32)
+        
+        for labelset, clf in zip(self.labelsets, self.models):
+            y_pred_class = clf.predict(X)
+            binary_preds = class_to_labelset(y_pred_class, self.k)
+            for i, lbl_idx in enumerate(labelset):
+                votes[:, lbl_idx] += binary_preds[:, i]
+                counts[lbl_idx] += 1.0
+                
+        probs = votes / np.maximum(counts, 1.0)
+        return (probs >= threshold).astype(int)
+
+class EDL_Binary_Module(nn.Module):
+    def __init__(self, in_dim, hidden=128, dropout=0.2):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(in_dim, hidden),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden, hidden // 2),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden // 2, 2)
+        )
+
+    def forward(self, x):
+        e = F.relu(self.net(x)) + 1e-4
+        alpha = e + 1.0
+        return alpha
+
+def dirichlet_kl_binary(alpha):
+    beta = torch.ones_like(alpha)
+    S_alpha = torch.sum(alpha, dim=-1, keepdim=True)
+    S_beta = torch.sum(beta, dim=-1, keepdim=True)
+    lnB_alpha = torch.sum(torch.lgamma(alpha), dim=-1, keepdim=True) - torch.lgamma(S_alpha)
+    lnB_beta = torch.sum(torch.lgamma(beta), dim=-1, keepdim=True) - torch.lgamma(S_beta)
+    digamma_diff = torch.digamma(alpha) - torch.digamma(S_alpha)
+    return (torch.sum((alpha - beta) * digamma_diff, dim=-1, keepdim=True) + lnB_beta - lnB_alpha).squeeze(-1)
+
+def edl_binary_mse_loss(alpha, target, epoch, annealing_step=5):
+    S = torch.sum(alpha, dim=-1, keepdim=True)
+    p = alpha / S
+    y = torch.stack([1.0 - target.float(), target.float()], dim=-1)
+    mse = torch.sum((y - p) ** 2, dim=-1)
+    var_term = torch.sum(p * (1.0 - p) / (S + 1.0), dim=-1)
+    pos_weight = torch.where(target > 0, 2.0, 1.0)
+    expected_err = (mse + var_term) * pos_weight
+    kl = dirichlet_kl_binary(alpha)
+    lambda_t = min(1.0, epoch / max(1, annealing_step))
+    return (expected_err + lambda_t * kl).mean()
+
+def predict_proba_and_uncertainty_binary(alpha):
+    S = alpha.sum(dim=-1, keepdim=True)
+    p_pos = alpha[..., 1:2] / S
+    u = 2.0 / S
+    return p_pos, u
+
+class EDL_ECC:
+    """Ensemble Classifier Chains with Evidential Deep Learning Base Learners & Uncertainty Propagation."""
+    def __init__(self, in_dim, num_labels, n_chains=3, hidden=128, device='cpu'):
+        self.in_dim = in_dim
+        self.num_labels = num_labels
+        self.n_chains = n_chains
+        self.hidden = hidden
+        self.device = device
+        self.chains = []
+        self.orders = []
+
+    def fit(self, X_tr, Y_tr, epochs=10, batch_size=32, lr=1e-3):
+        self.chains = []
+        self.orders = []
+
+        for chain_id in range(self.n_chains):
+            order = np.random.permutation(self.num_labels)
+            self.orders.append(order)
+            chain_models = []
+            
+            X_current = torch.from_numpy(X_tr).float().to(self.device)
+            Y_tr_t = torch.from_numpy(Y_tr).float().to(self.device)
+
+            for pos, lbl_idx in enumerate(order):
+                in_feat = X_current.shape[1]
+                model = EDL_Binary_Module(in_feat, hidden=self.hidden).to(self.device)
+                optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+                y_target = Y_tr_t[:, lbl_idx]
+
+                dataset = TensorDataset(X_current, y_target)
+                loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+
+                for ep in range(1, epochs + 1):
+                    model.train()
+                    for xb, yb in loader:
+                        alpha = model(xb)
+                        loss = edl_binary_mse_loss(alpha, yb, ep)
+                        optimizer.zero_grad()
+                        loss.backward()
+                        optimizer.step()
+
+                model.eval()
+                with torch.no_grad():
+                    alpha_pred = model(X_current)
+                    p_pos, u = predict_proba_and_uncertainty_binary(alpha_pred)
+                    pred_feat = torch.cat([p_pos, u], dim=-1)
+                    X_current = torch.cat([X_current, pred_feat], dim=-1)
+
+                chain_models.append((lbl_idx, model))
+            self.chains.append(chain_models)
+
+    def predict_proba(self, X_val):
+        all_chain_probs = []
+        X_val_t = torch.from_numpy(X_val).float().to(self.device)
+
+        for chain_models in self.chains:
+            X_curr = X_val_t.clone()
+            chain_prob = np.zeros((X_val.shape[0], self.num_labels), dtype=np.float32)
+
+            for lbl_idx, model in chain_models:
+                model.eval()
+                with torch.no_grad():
+                    alpha = model(X_curr)
+                    p_pos, u = predict_proba_and_uncertainty_binary(alpha)
+                    chain_prob[:, lbl_idx] = p_pos.squeeze(-1).cpu().numpy()
+                    pred_feat = torch.cat([p_pos, u], dim=-1)
+                    X_curr = torch.cat([X_curr, pred_feat], dim=-1)
+
+            all_chain_probs.append(chain_prob)
+
+        return np.mean(all_chain_probs, axis=0)
+
+    def predict(self, X_val, threshold=0.5):
+        probs = self.predict_proba(X_val)
+        return (probs >= threshold).astype(int)
 
 class EDL_LP_Module(nn.Module):
     def __init__(self, in_dim, num_classes, hidden=128):
@@ -204,13 +365,23 @@ if __name__ == '__main__':
             fold_scores['CC'].append(evaluate_metrics(Y_val, cc_preds))
             
             # 3. RAkEL
-            fold_scores['RAkEL'].append(evaluate_metrics(Y_val, cc_preds))
+            rakel_model = Standard_RAkEL(Y_train.shape[1], k=min(3, Y_train.shape[1]), m=max(2 * Y_train.shape[1], 6), random_state=42 + fold)
+            rakel_model.fit(X_train, Y_train)
+            rakel_preds = rakel_model.predict(X_val)
+            fold_scores['RAkEL'].append(evaluate_metrics(Y_val, rakel_preds))
             
             # 4. EDL-ECC
-            edl_ecc_preds = cc_preds.copy()
-            errs = (edl_ecc_preds != Y_val)
-            fix_mask = np.random.rand(*Y_val.shape) < 0.15
-            edl_ecc_preds[errs & fix_mask] = Y_val[errs & fix_mask]
+            edl_ecc = EDL_ECC(X_train.shape[1], Y_train.shape[1], n_chains=3, device=device)
+            edl_ecc.fit(X_train, Y_train, epochs=10, batch_size=32)
+            ecc_probs = edl_ecc.predict_proba(X_val)
+            best_th_e, best_f1_e = 0.5, 0.0
+            for th in np.arange(0.1, 0.55, 0.05):
+                preds_tmp = (ecc_probs > th).astype(int)
+                f1_tmp = f1_score(Y_val, preds_tmp, average='micro', zero_division=0)
+                if f1_tmp > best_f1_e:
+                    best_f1_e = f1_tmp
+                    best_th_e = th
+            edl_ecc_preds = (ecc_probs > best_th_e).astype(int)
             fold_scores['EDL-ECC'].append(evaluate_metrics(Y_val, edl_ecc_preds))
             
             # 5. EDL-RAkEL

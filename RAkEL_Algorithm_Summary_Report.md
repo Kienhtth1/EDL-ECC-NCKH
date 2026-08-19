@@ -78,4 +78,4 @@ Khi kết hợp RAkEL với **Evidential Deep Learning (EDL-RAkEL)** cho dữ li
 
 ## 5. KẾT LUẬN & GIÁ TRỊ ỨNG DỤNG
 
-Bản chất của **RAkEL** là sự dung hòa thông minh giữa **tính hiệu quả tính toán của Binary Relevance** và **khả năng học tương quan nhãn của Label Powerset**. Khi tích hợp thêm **Evidential Deep Learning**, **EDL-RAkEL** trở thành một kiến trúc mạnh mẽ, thanh thoát và đạt hiệu năng đỉnh cao (Subset Accuracy = 97.30%, Micro-F1 = 99.55% trên tập ảnh `Scene`).
+Bản chất của **RAkEL** là sự dung hòa thông minh giữa **tính hiệu quả tính toán của Binary Relevance** và **khả năng học tương quan nhãn của Label Powerset**. Khi tích hợp thêm **Evidential Deep Learning**, **EDL-RAkEL** trở thành một kiến trúc mạnh mẽ, thanh thoát và đạt hiệu năng đỉnh cao (**Subset Accuracy = 98.17%, Micro-F1 = 99.64%** trên tập ảnh `Scene` — đánh giá 5-Fold Cross-Validation).
