@@ -47,7 +47,6 @@ def plot_eda_charts(Y, label_names, ds_name, out_dir):
 
 
 def plot_grouped_bar_chart(df_mean, df_std, ds_name, out_dir):
-    """Vẽ Grouped Bar Chart so sánh BR vs CC vs EDL-ECC với độ lệch chuẩn (Mean ± Std)."""
     fig, ax = plt.subplots(figsize=(12, 5))
     x = np.arange(len(METRICS_NAMES))
     width = 0.25
@@ -73,7 +72,6 @@ def plot_grouped_bar_chart(df_mean, df_std, ds_name, out_dir):
 
 
 def plot_radar_chart(df_mean, ds_name, out_dir):
-    """Vẽ biểu đồ Radar Chart so sánh các mô hình."""
     angles = np.linspace(0, 2 * np.pi, len(METRICS_NAMES), endpoint=False).tolist() + [0]
     colors_radar = {'BR': '#1f77b4', 'CC': '#ff7f0e', 'EDL-ECC': '#d62728'}
 
@@ -95,7 +93,6 @@ def plot_radar_chart(df_mean, ds_name, out_dir):
 
 
 def plot_metrics_table(df_mean, ds_name, out_dir):
-    """Lưu bảng kết quả thành file ảnh PNG và file CSV."""
     df_table = df_mean.round(4).copy()
     df_table.insert(0, 'Model', df_table.index)
     df_table = df_table.reset_index(drop=True)
@@ -123,7 +120,6 @@ def plot_metrics_table(df_mean, ds_name, out_dir):
 
 
 def plot_uncertainty_distribution(fold_unc_correct, fold_unc_wrong, ds_name, out_dir):
-    """Vẽ biểu đồ phân bố độ bất định của EDL-ECC khi dự đoán đúng vs sai."""
     if not fold_unc_correct or not fold_unc_wrong:
         return
     mean_u_correct = float(np.mean(fold_unc_correct))
@@ -149,8 +145,6 @@ def plot_uncertainty_distribution(fold_unc_correct, fold_unc_wrong, ds_name, out
 
 
 def plot_dataset_visualizations(df_mean, df_std, fold_unc_correct, fold_unc_wrong, ds_name, out_dir):
-    """Hàm tổng hợp gọi toàn bộ các hàm vẽ biểu đồ cho một dataset."""
-    print(f"  ✓ Đang xuất biểu đồ: Grouped Bar, Radar, Metrics Table & Uncertainty Distribution...")
     plot_grouped_bar_chart(df_mean, df_std, ds_name, out_dir)
     plot_radar_chart(df_mean, ds_name, out_dir)
     plot_metrics_table(df_mean, ds_name, out_dir)
@@ -158,7 +152,6 @@ def plot_dataset_visualizations(df_mean, df_std, fold_unc_correct, fold_unc_wron
 
 
 def plot_overall_summary(all_results, out_dir):
-    """Vẽ biểu đồ tổng hợp so sánh Micro-F1 trên tất cả các datasets."""
     datasets = list(all_results.keys())
     if not datasets:
         return
