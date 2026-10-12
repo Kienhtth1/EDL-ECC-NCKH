@@ -1,0 +1,274 @@
+{
+  "mean": {
+    "Scene": {
+      "BR": {
+        "1-HL": 0.8585,
+        "SubAcc": 0.4254,
+        "Micro-F1": 0.6561,
+        "Macro-F1": 0.6701,
+        "Jaccard": 0.5938
+      },
+      "CC": {
+        "1-HL": 0.869,
+        "SubAcc": 0.5164,
+        "Micro-F1": 0.6574,
+        "Macro-F1": 0.6701,
+        "Jaccard": 0.6235
+      },
+      "ECC": {
+        "1-HL": 0.8785,
+        "SubAcc": 0.5264,
+        "Micro-F1": 0.6776,
+        "Macro-F1": 0.6878,
+        "Jaccard": 0.6342
+      },
+      "EDL-ECC": {
+        "1-HL": 0.9266,
+        "SubAcc": 0.6884,
+        "Micro-F1": 0.7911,
+        "Macro-F1": 0.7993,
+        "Jaccard": 0.7508
+      }
+    },
+    "Yeast": {
+      "BR": {
+        "1-HL": 0.6767,
+        "SubAcc": 0.0683,
+        "Micro-F1": 0.5403,
+        "Macro-F1": 0.4558,
+        "Jaccard": 0.4047
+      },
+      "CC": {
+        "1-HL": 0.6723,
+        "SubAcc": 0.1022,
+        "Micro-F1": 0.5144,
+        "Macro-F1": 0.4236,
+        "Jaccard": 0.3934
+      },
+      "ECC": {
+        "1-HL": 0.6966,
+        "SubAcc": 0.1026,
+        "Micro-F1": 0.539,
+        "Macro-F1": 0.4459,
+        "Jaccard": 0.4123
+      },
+      "EDL-ECC": {
+        "1-HL": 0.7958,
+        "SubAcc": 0.1994,
+        "Micro-F1": 0.6611,
+        "Macro-F1": 0.4585,
+        "Jaccard": 0.5361
+      }
+    },
+    "emotions": {
+      "BR": {
+        "1-HL": 0.783,
+        "SubAcc": 0.226,
+        "Micro-F1": 0.6828,
+        "Macro-F1": 0.6806,
+        "Jaccard": 0.5517
+      },
+      "CC": {
+        "1-HL": 0.783,
+        "SubAcc": 0.2749,
+        "Micro-F1": 0.6757,
+        "Macro-F1": 0.6723,
+        "Jaccard": 0.5573
+      },
+      "ECC": {
+        "1-HL": 0.7929,
+        "SubAcc": 0.2767,
+        "Micro-F1": 0.6843,
+        "Macro-F1": 0.679,
+        "Jaccard": 0.5623
+      },
+      "EDL-ECC": {
+        "1-HL": 0.8077,
+        "SubAcc": 0.3239,
+        "Micro-F1": 0.6982,
+        "Macro-F1": 0.6862,
+        "Jaccard": 0.5811
+      }
+    },
+    "HumanPseAAC": {
+      "BR": {
+        "1-HL": 0.8403,
+        "SubAcc": 0.0834,
+        "Micro-F1": 0.3356,
+        "Macro-F1": 0.1888,
+        "Jaccard": 0.2586
+      },
+      "CC": {
+        "1-HL": 0.8572,
+        "SubAcc": 0.1294,
+        "Micro-F1": 0.2976,
+        "Macro-F1": 0.1689,
+        "Jaccard": 0.2544
+      },
+      "ECC": {
+        "1-HL": 0.8646,
+        "SubAcc": 0.1268,
+        "Micro-F1": 0.3042,
+        "Macro-F1": 0.1759,
+        "Jaccard": 0.2485
+      },
+      "EDL-ECC": {
+        "1-HL": 0.9094,
+        "SubAcc": 0.2167,
+        "Micro-F1": 0.3797,
+        "Macro-F1": 0.194,
+        "Jaccard": 0.2942
+      }
+    },
+    "PlantPseAAC": {
+      "BR": {
+        "1-HL": 0.8553,
+        "SubAcc": 0.1268,
+        "Micro-F1": 0.3042,
+        "Macro-F1": 0.2112,
+        "Jaccard": 0.2337
+      },
+      "CC": {
+        "1-HL": 0.8593,
+        "SubAcc": 0.1452,
+        "Micro-F1": 0.3051,
+        "Macro-F1": 0.2118,
+        "Jaccard": 0.2441
+      },
+      "ECC": {
+        "1-HL": 0.8602,
+        "SubAcc": 0.1442,
+        "Micro-F1": 0.3081,
+        "Macro-F1": 0.2128,
+        "Jaccard": 0.2457
+      },
+      "EDL-ECC": {
+        "1-HL": 0.8993,
+        "SubAcc": 0.1973,
+        "Micro-F1": 0.3344,
+        "Macro-F1": 0.179,
+        "Jaccard": 0.249
+      }
+    },
+    "GpositivePseAAC": {
+      "BR": {
+        "1-HL": 0.8165,
+        "SubAcc": 0.5375,
+        "Micro-F1": 0.6429,
+        "Macro-F1": 0.5431,
+        "Jaccard": 0.5992
+      },
+      "CC": {
+        "1-HL": 0.8203,
+        "SubAcc": 0.5664,
+        "Micro-F1": 0.6504,
+        "Macro-F1": 0.5597,
+        "Jaccard": 0.6175
+      },
+      "ECC": {
+        "1-HL": 0.8208,
+        "SubAcc": 0.5645,
+        "Micro-F1": 0.6517,
+        "Macro-F1": 0.5585,
+        "Jaccard": 0.6175
+      },
+      "EDL-ECC": {
+        "1-HL": 0.8444,
+        "SubAcc": 0.6051,
+        "Micro-F1": 0.6971,
+        "Macro-F1": 0.5934,
+        "Jaccard": 0.659
+      }
+    },
+    "VirusPseAAC": {
+      "BR": {
+        "1-HL": 0.7907,
+        "SubAcc": 0.2756,
+        "Micro-F1": 0.4614,
+        "Macro-F1": 0.3729,
+        "Jaccard": 0.3878
+      },
+      "CC": {
+        "1-HL": 0.7915,
+        "SubAcc": 0.2853,
+        "Micro-F1": 0.4624,
+        "Macro-F1": 0.3705,
+        "Jaccard": 0.3933
+      },
+      "ECC": {
+        "1-HL": 0.7915,
+        "SubAcc": 0.2804,
+        "Micro-F1": 0.4626,
+        "Macro-F1": 0.3706,
+        "Jaccard": 0.3913
+      },
+      "EDL-ECC": {
+        "1-HL": 0.7923,
+        "SubAcc": 0.2562,
+        "Micro-F1": 0.4971,
+        "Macro-F1": 0.4022,
+        "Jaccard": 0.4123
+      }
+    },
+    "Water-quality": {
+      "BR": {
+        "1-HL": 0.6548,
+        "SubAcc": 0.0075,
+        "Micro-F1": 0.5747,
+        "Macro-F1": 0.5618,
+        "Jaccard": 0.3946
+      },
+      "CC": {
+        "1-HL": 0.638,
+        "SubAcc": 0.0085,
+        "Micro-F1": 0.5758,
+        "Macro-F1": 0.5635,
+        "Jaccard": 0.3937
+      },
+      "ECC": {
+        "1-HL": 0.6415,
+        "SubAcc": 0.0104,
+        "Micro-F1": 0.5811,
+        "Macro-F1": 0.569,
+        "Jaccard": 0.3996
+      },
+      "EDL-ECC": {
+        "1-HL": 0.7007,
+        "SubAcc": 0.0132,
+        "Micro-F1": 0.618,
+        "Macro-F1": 0.5824,
+        "Jaccard": 0.4447
+      }
+    },
+    "CHD_49": {
+      "BR": {
+        "1-HL": 0.6418,
+        "SubAcc": 0.1063,
+        "Micro-F1": 0.5829,
+        "Macro-F1": 0.4947,
+        "Jaccard": 0.4379
+      },
+      "CC": {
+        "1-HL": 0.6456,
+        "SubAcc": 0.1333,
+        "Micro-F1": 0.5846,
+        "Macro-F1": 0.4895,
+        "Jaccard": 0.4456
+      },
+      "ECC": {
+        "1-HL": 0.6486,
+        "SubAcc": 0.1117,
+        "Micro-F1": 0.582,
+        "Macro-F1": 0.4905,
+        "Jaccard": 0.437
+      },
+      "EDL-ECC": {
+        "1-HL": 0.6811,
+        "SubAcc": 0.1333,
+        "Micro-F1": 0.6615,
+        "Macro-F1": 0.5121,
+        "Jaccard": 0.519
+      }
+    }
+  }
+}

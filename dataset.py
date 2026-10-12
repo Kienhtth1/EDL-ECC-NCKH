@@ -3,8 +3,8 @@ import pandas as pd
 from scipy.io import arff
 
 
-def load_arff(path, num_labels):
-    data, _ = arff.loadarff(path)
+def load_arff(path, num_labels, label_location=None):
+    data, meta = arff.loadarff(path)
     df = pd.DataFrame(data)
     for col in df.columns:
         if df[col].dtype == object:
@@ -13,9 +13,24 @@ def load_arff(path, num_labels):
             except Exception:
                 pass
             df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
-    X = df.iloc[:, :-num_labels].values.astype('float32')
-    Y = (df.iloc[:, -num_labels:].values > 0).astype('float32')
-    label_names = list(df.columns[-num_labels:])
+
+    # Tự động phát hiện vị trí nhãn nếu chưa chỉ định rõ
+    if label_location is None:
+        nominal_idx = [i for i, t in enumerate(meta.types()) if t == 'nominal']
+        if nominal_idx == list(range(num_labels)):
+            label_location = 'first'
+        else:
+            label_location = 'last'
+
+    if label_location == 'first':
+        Y = (df.iloc[:, :num_labels].values > 0).astype('float32')
+        X = df.iloc[:, num_labels:].values.astype('float32')
+        label_names = list(df.columns[:num_labels])
+    else:
+        X = df.iloc[:, :-num_labels].values.astype('float32')
+        Y = (df.iloc[:, -num_labels:].values > 0).astype('float32')
+        label_names = list(df.columns[-num_labels:])
+
     return X, Y, label_names
 
 

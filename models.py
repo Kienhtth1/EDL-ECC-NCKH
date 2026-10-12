@@ -9,7 +9,7 @@ from sklearn.multiclass import OneVsRestClassifier
 from sklearn.multioutput import ClassifierChain
 from sklearn.metrics import f1_score
 
-from config import HIDDEN, DROPOUT, N_CHAINS, EPOCHS, BATCH_SIZE, LR, SEED, DEVICE
+from config import HIDDEN, DROPOUT, N_CHAINS, EPOCHS, BATCH_SIZE, LR, SEED, THRESHOLD, DEVICE
 
 
 # ── EDL Loss & Helper functions 
@@ -121,45 +121,65 @@ class EDL_ECC:
 
 # ── Hàm Huấn luyện & Đánh giá từng mô hình
 def train_eval_br(X_tr, Y_tr, X_va, Y_va, base_estimator=None):
-    """Binary Relevance (BR)."""
+    """Binary Relevance (BR) với ngưỡng cố định 0.5."""
     if base_estimator is None:
         base_estimator = LogisticRegression(solver='lbfgs', max_iter=300, class_weight='balanced')
-    br = OneVsRestClassifier(base_estimator)
+    br = OneVsRestClassifier(base_estimator, n_jobs=-1)
     br.fit(X_tr, Y_tr)
-    br_preds = br.predict(X_va)
+    if hasattr(br, "predict_proba"):
+        br_probs = br.predict_proba(X_va)
+        br_preds = (br_probs >= THRESHOLD).astype(int)
+    else:
+        br_preds = br.predict(X_va)
     return br_preds
 
 
 def train_eval_cc(X_tr, Y_tr, X_va, Y_va, base_estimator=None, seed=SEED):
-    """Classifier Chains (CC)."""
+    """Classifier Chains (CC) với ngưỡng cố định 0.5."""
     if base_estimator is None:
         base_estimator = LogisticRegression(solver='lbfgs', max_iter=300, class_weight='balanced')
     cc = ClassifierChain(base_estimator, order='random', random_state=seed)
     cc.fit(X_tr, Y_tr)
-    cc_preds = cc.predict(X_va)
+    if hasattr(cc, "predict_proba"):
+        cc_probs = cc.predict_proba(X_va)
+        cc_preds = (cc_probs >= THRESHOLD).astype(int)
+    else:
+        cc_preds = cc.predict(X_va)
     return cc_preds
 
 
-def train_eval_edl_ecc(X_tr, Y_tr, X_va, Y_va, num_labels, dev=DEVICE,epochs=EPOCHS, batch_size=BATCH_SIZE, lr=LR):
+def train_eval_ecc(X_tr, Y_tr, X_va, Y_va, n_chains=N_CHAINS, base_estimator=None, seed=SEED, fold=0):
+    """Ensemble of Classifier Chains (ECC) với ngưỡng cố định 0.5."""
+    chain_probs = []
+    for c in range(n_chains):
+        if base_estimator is None:
+            base_lr = LogisticRegression(solver='lbfgs', max_iter=300, class_weight='balanced')
+        else:
+            base_lr = base_estimator
+        cc = ClassifierChain(base_lr, order='random', random_state=seed + c * 100 + fold)
+        cc.fit(X_tr, Y_tr)
+        if hasattr(cc, "predict_proba"):
+            probs = cc.predict_proba(X_va)
+        else:
+            probs = cc.predict(X_va)
+        chain_probs.append(probs)
+
+    avg_probs = np.mean(chain_probs, axis=0)
+    ecc_preds = (avg_probs >= THRESHOLD).astype(int)
+    return ecc_preds
+
+
+def train_eval_edl_ecc(X_tr, Y_tr, X_va, Y_va, num_labels, n_chains=N_CHAINS, dev=DEVICE, epochs=EPOCHS, batch_size=BATCH_SIZE, lr=LR):
     """
-    EDL-ECC, kèm tối ưu ngưỡng và trích xuất độ bất định.
+    EDL-ECC với ngưỡng cố định 0.5 (đảm bảo so sánh công bằng với BR, CC, ECC).
     """
-    edl_ecc = EDL_ECC(X_tr.shape[1], num_labels, dev=dev)
+    edl_ecc = EDL_ECC(X_tr.shape[1], num_labels, n_chains=n_chains, dev=dev)
     edl_ecc.fit(X_tr, Y_tr, epochs=epochs, batch_size=batch_size, lr=lr)
     proba = edl_ecc.predict_proba(X_va)
-    best_th, best_f1 = 0.5, 0.0
-    for th in np.arange(0.1, 0.55, 0.05):
-        pt = (proba >= th).astype(int)
-        if pt.sum() == 0:
-            continue
-        try:
-            f1 = f1_score(Y_va.astype(int), pt, average='micro', zero_division=0)
-            if f1 > best_f1:
-                best_f1, best_th = f1, th
-        except ValueError:
-            continue
+    
+    # Cố định ngưỡng THRESHOLD cho tất cả mô hình, loại bỏ tối ưu ngưỡng trên tập test/val
+    edl_preds = (proba >= THRESHOLD).astype(int)
 
-    edl_preds = (proba >= best_th).astype(int)
     unc_correct, unc_wrong = [], []
     try:
         X_va_t = torch.from_numpy(X_va).float().to(dev)

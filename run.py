@@ -6,7 +6,7 @@ from sklearn.preprocessing import StandardScaler
 from config import (
     DATA_DIR, OUTPUTS_DIR, DATASET_CONFIGS,
     HIDDEN, DROPOUT, N_CHAINS, EPOCHS, LR, SEED,
-    METRICS_NAMES, DEVICE
+    METRICS_NAMES, DEVICE, find_file
 )
 from dataset import load_arff
 from evaluate import run_kfold_cv, print_dataset_report, generate_and_save_summary
@@ -14,9 +14,9 @@ from plots import plot_eda_charts, plot_dataset_visualizations, plot_overall_sum
 
 
 def process_single_dataset(ds_name, cfg, dev=DEVICE):
-    arff_path = DATA_DIR / cfg['file']
-    if not arff_path.exists():
-        print(f'\n[SKIP] {ds_name}: {arff_path} không tồn tại.')
+    arff_path = find_file(cfg['file'])
+    if arff_path is None or not arff_path.exists():
+        print(f'\n[SKIP] {ds_name}: Không tìm thấy file {cfg["file"]}')
         return None, None
     ds_out_dir = OUTPUTS_DIR / ds_name
     ds_out_dir.mkdir(parents=True, exist_ok=True)
@@ -30,11 +30,11 @@ def process_single_dataset(ds_name, cfg, dev=DEVICE):
     )
     res = {
         mn: {m: round(float(df_mean.loc[mn, m]), 4) for m in METRICS_NAMES}
-        for mn in ['BR', 'CC', 'EDL-ECC']
+        for mn in df_mean.index
     }
     res_std = {
         mn: {m: round(float(df_std.loc[mn, m]), 4) for m in METRICS_NAMES}
-        for mn in ['BR', 'CC', 'EDL-ECC']
+        for mn in df_std.index
     }
     plot_dataset_visualizations(df_mean, df_std, unc_corr, unc_wrg, ds_name, ds_out_dir)
     print_dataset_report(res, total_time, ds_name, ds_out_dir)

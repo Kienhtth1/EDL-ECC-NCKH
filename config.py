@@ -8,6 +8,18 @@ import matplotlib.pyplot as plt
 import torch
 
 
+# ── Kaggle / Local detection
+IS_KAGGLE   = Path('/kaggle/working').exists()
+OUTPUTS_DIR = Path('/kaggle/working/outputs') if IS_KAGGLE else Path('./outputs')
+OUTPUTS_DIR.mkdir(parents=True, exist_ok=True)
+
+DATA_DIR_CANDIDATES = [
+    Path('/kaggle/input'),
+    Path('./data'),
+    Path('.'),
+]
+
+
 try:
     plt.style.use('seaborn-v0_8-whitegrid')
 except Exception:
@@ -18,8 +30,6 @@ except Exception:
 
 
 DATA_DIR = Path('./data')
-OUTPUTS_DIR = Path('./outputs')
-OUTPUTS_DIR.mkdir(parents=True, exist_ok=True)
     
 DATASET_CONFIGS = {
     'Scene':           {'file': 'Scene.arff',           'num_labels': 6},
@@ -34,13 +44,14 @@ DATASET_CONFIGS = {
 }
 
 # ── Siêu tham số Huấn luyện & Đánh giá 
-N_CHAINS      = 3
+N_CHAINS      = 20
 HIDDEN        = 256
-DROPOUT       = 0.3
+DROPOUT       = 0.2
 EPOCHS        = 100
-BATCH_SIZE    = 32
+BATCH_SIZE    = 64
 LR            = 1e-3
 SEED          = 42
+THRESHOLD     = 0.5
 METRICS_NAMES = ['1-HL', 'SubAcc', 'Micro-F1', 'Macro-F1', 'Jaccard']
 
 
@@ -59,3 +70,15 @@ def get_device():
     return dev
 
 DEVICE = get_device()
+
+
+def find_file(filename):
+    """Tìm file data theo tên, duyệt đệ quy qua DATA_DIR_CANDIDATES."""
+    target_lower = filename.lower()
+    for base in DATA_DIR_CANDIDATES:
+        if not base.exists():
+            continue
+        for p in base.rglob('*'):
+            if p.is_file() and p.name.lower() == target_lower:
+                return p
+    return None
