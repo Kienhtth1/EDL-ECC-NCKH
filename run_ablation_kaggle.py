@@ -532,81 +532,116 @@ def train_ecc_mlp_ce(X_train, Y_train, X_val, Y_val, n_chains, config):
     return final_preds
 
 def train_ecc_lr_edl(X_train, Y_train, X_val, Y_val, n_chains, config):
-    """ECC with linear model + EDL loss - use predictions only for fair comparison"""
-    N_val, K = Y_val.shape
+    """
+    ECC with linear model + EDL loss
+    Matches run1.py: augments with predictions and uncertainties
+    """
+    N_train, K = Y_train.shape
+    N_val = Y_val.shape[0]
     all_preds = np.zeros((n_chains, N_val, K))
 
-    for m in range(n_chains):
+    for chain_idx in range(n_chains):
         order = np.random.permutation(K)
-        preds = np.zeros((N_val, K))
-        uncertainties = np.zeros((N_val, K))
+        preds_val = np.zeros((N_val, K))
+        preds_train = np.zeros((N_train, K))
+        uncert_val = np.zeros((N_val, K))
+        uncert_train = np.zeros((N_train, K))
 
-        for i, j in enumerate(order):
-            if i == 0:
-                X_aug_train = X_train
-                X_aug_val = X_val
+        for position, label_idx in enumerate(order):
+            if position == 0:
+                X_train_curr = X_train
+                X_val_curr = X_val
             else:
-                # Augment features with previous predictions only (no uncertainty)
-                # This ensures fair comparison: all methods use same features
-                # EDL improves via better loss function, not via uncertainty propagation
-                prev_labels = Y_train[:, order[:i]].astype(np.float32)
-                X_aug_train = np.hstack([X_train, prev_labels])
-                
-                # Validation: use predicted probabilities only
-                prev_preds = preds[:, order[:i]]
-                X_aug_val = np.hstack([X_val, prev_preds])
+                # Augment train with previous labels and uncertainties
+                prev_order = order[:position]
+                X_train_curr = np.hstack([
+                    X_train,
+                    Y_train[:, prev_order].astype(np.float32),
+                    uncert_train[:, prev_order]
+                ])
+                # Augment val with previous predictions and uncertainties
+                X_val_curr = np.hstack([
+                    X_val,
+                    preds_val[:, prev_order],
+                    uncert_val[:, prev_order]
+                ])
 
-            probs, uncert = train_lr_edl(
-                X_aug_train, Y_train[:, j],
-                X_aug_val, Y_val[:, j],
+            # Train LR with EDL loss
+            p_val, u_val = train_lr_edl(
+                X_train_curr, Y_train[:, label_idx],
+                X_val_curr, Y_val[:, label_idx],
                 config
             )
-            preds[:, j] = probs
-            uncertainties[:, j] = uncert
+            preds_val[:, label_idx] = p_val
+            uncert_val[:, label_idx] = u_val
+            
+            # Also predict on training set for next iteration
+            _, u_train = train_lr_edl(
+                X_train_curr, Y_train[:, label_idx],
+                X_train, Y_train[:, label_idx],  # Use original training features
+                config
+            )
+            uncert_train[:, label_idx] = u_train
 
-        all_preds[m] = preds
+        all_preds[chain_idx] = preds_val
 
     return all_preds.mean(axis=0)
 
 def train_ecc_mlp_edl(X_train, Y_train, X_val, Y_val, n_chains, config):
-    """ECC with MLP + EDL Loss (proposed method) - use predictions only for fair comparison"""
-    N_val, K = Y_val.shape
+    """
+    ECC with MLP + EDL Loss
+    Matches run1.py: augments with predictions and uncertainties
+    """
+    N_train, K = Y_train.shape
+    N_val = Y_val.shape[0]
     all_preds = np.zeros((n_chains, N_val, K))
-    
-    for m in range(n_chains):
+
+    for chain_idx in range(n_chains):
         order = np.random.permutation(K)
-        preds = np.zeros((N_val, K))
-        uncertainties = np.zeros((N_val, K))
-        
-        for i, j in enumerate(order):
-            if i == 0:
-                X_aug_train = X_train
-                X_aug_val = X_val
+        preds_val = np.zeros((N_val, K))
+        preds_train = np.zeros((N_train, K))
+        uncert_val = np.zeros((N_val, K))
+        uncert_train = np.zeros((N_train, K))
+
+        for position, label_idx in enumerate(order):
+            if position == 0:
+                X_train_curr = X_train
+                X_val_curr = X_val
             else:
-                # Augment features with previous predictions only (no uncertainty)
-                # This ensures fair comparison: all methods use same features
-                # EDL improves via better loss function, not via uncertainty propagation
-                prev_labels = Y_train[:, order[:i]].astype(np.float32)
-                X_aug_train = np.hstack([X_train, prev_labels])
-                
-                # Validation: use predicted probabilities only
-                prev_preds = preds[:, order[:i]]
-                X_aug_val = np.hstack([X_val, prev_preds])
-            
-            # Train MLP with EDL
-            probs, uncert = train_mlp_edl(
-                X_aug_train, Y_train[:, j],
-                X_aug_val, Y_val[:, j],
+                # Augment train with previous labels and uncertainties
+                prev_order = order[:position]
+                X_train_curr = np.hstack([
+                    X_train,
+                    Y_train[:, prev_order].astype(np.float32),
+                    uncert_train[:, prev_order]
+                ])
+                # Augment val with previous predictions and uncertainties
+                X_val_curr = np.hstack([
+                    X_val,
+                    preds_val[:, prev_order],
+                    uncert_val[:, prev_order]
+                ])
+
+            # Train MLP with EDL loss
+            p_val, u_val = train_mlp_edl(
+                X_train_curr, Y_train[:, label_idx],
+                X_val_curr, Y_val[:, label_idx],
                 config
             )
-            preds[:, j] = probs
-            uncertainties[:, j] = uncert
-        
-        all_preds[m] = preds
-    
-    # Average predictions
-    final_preds = all_preds.mean(axis=0)
-    return final_preds
+            preds_val[:, label_idx] = p_val
+            uncert_val[:, label_idx] = u_val
+            
+            # Also predict on training set for next iteration
+            _, u_train = train_mlp_edl(
+                X_train_curr, Y_train[:, label_idx],
+                X_train, Y_train[:, label_idx],  # Use original training features
+                config
+            )
+            uncert_train[:, label_idx] = u_train
+
+        all_preds[chain_idx] = preds_val
+
+    return all_preds.mean(axis=0)
 
 # ============================================================================
 # 6. EVALUATION METRICS

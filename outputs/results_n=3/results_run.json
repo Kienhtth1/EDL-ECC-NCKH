@@ -23,11 +23,11 @@
         "Jaccard": 0.6256
       },
       "EDL-ECC": {
-        "1-HL": 0.9267,
-        "SubAcc": 0.688,
-        "Micro-F1": 0.7911,
-        "Macro-F1": 0.798,
-        "Jaccard": 0.7491
+        "1-HL": 0.9214,
+        "SubAcc": 0.6847,
+        "Micro-F1": 0.7765,
+        "Macro-F1": 0.7846,
+        "Jaccard": 0.742
       }
     },
     "Yeast": {
@@ -53,11 +53,11 @@
         "Jaccard": 0.4029
       },
       "EDL-ECC": {
-        "1-HL": 0.7901,
-        "SubAcc": 0.1771,
-        "Micro-F1": 0.6526,
-        "Macro-F1": 0.459,
-        "Jaccard": 0.5242
+        "1-HL": 0.7832,
+        "SubAcc": 0.1878,
+        "Micro-F1": 0.6326,
+        "Macro-F1": 0.4532,
+        "Jaccard": 0.5062
       }
     },
     "emotions": {
@@ -83,11 +83,11 @@
         "Jaccard": 0.55
       },
       "EDL-ECC": {
-        "1-HL": 0.8007,
-        "SubAcc": 0.2935,
-        "Micro-F1": 0.6871,
-        "Macro-F1": 0.6741,
-        "Jaccard": 0.5667
+        "1-HL": 0.8047,
+        "SubAcc": 0.307,
+        "Micro-F1": 0.6855,
+        "Macro-F1": 0.6725,
+        "Jaccard": 0.5666
       }
     },
     "HumanPseAAC": {
@@ -113,11 +113,11 @@
         "Jaccard": 0.2454
       },
       "EDL-ECC": {
-        "1-HL": 0.9085,
-        "SubAcc": 0.2167,
-        "Micro-F1": 0.3773,
-        "Macro-F1": 0.1933,
-        "Jaccard": 0.2938
+        "1-HL": 0.904,
+        "SubAcc": 0.2202,
+        "Micro-F1": 0.3833,
+        "Macro-F1": 0.2012,
+        "Jaccard": 0.3087
       }
     },
     "PlantPseAAC": {
@@ -143,11 +143,11 @@
         "Jaccard": 0.2465
       },
       "EDL-ECC": {
-        "1-HL": 0.8993,
-        "SubAcc": 0.2045,
-        "Micro-F1": 0.3383,
-        "Macro-F1": 0.1789,
-        "Jaccard": 0.2554
+        "1-HL": 0.8967,
+        "SubAcc": 0.2116,
+        "Micro-F1": 0.3257,
+        "Macro-F1": 0.1838,
+        "Jaccard": 0.2544
       }
     },
     "GpositivePseAAC": {
@@ -173,11 +173,11 @@
         "Jaccard": 0.6136
       },
       "EDL-ECC": {
-        "1-HL": 0.8439,
-        "SubAcc": 0.6128,
-        "Micro-F1": 0.6935,
-        "Macro-F1": 0.5798,
-        "Jaccard": 0.658
+        "1-HL": 0.8478,
+        "SubAcc": 0.6108,
+        "Micro-F1": 0.6879,
+        "Macro-F1": 0.5678,
+        "Jaccard": 0.6406
       }
     },
     "VirusPseAAC": {
@@ -203,11 +203,11 @@
         "Jaccard": 0.3886
       },
       "EDL-ECC": {
-        "1-HL": 0.7987,
-        "SubAcc": 0.2755,
-        "Micro-F1": 0.5134,
-        "Macro-F1": 0.4193,
-        "Jaccard": 0.4331
+        "1-HL": 0.8036,
+        "SubAcc": 0.3145,
+        "Micro-F1": 0.4803,
+        "Macro-F1": 0.4051,
+        "Jaccard": 0.415
       }
     },
     "Water-quality": {
@@ -233,11 +233,11 @@
         "Jaccard": 0.398
       },
       "EDL-ECC": {
-        "1-HL": 0.6964,
-        "SubAcc": 0.017,
-        "Micro-F1": 0.6112,
-        "Macro-F1": 0.5747,
-        "Jaccard": 0.4392
+        "1-HL": 0.71,
+        "SubAcc": 0.0236,
+        "Micro-F1": 0.6151,
+        "Macro-F1": 0.5762,
+        "Jaccard": 0.4446
       }
     },
     "CHD_49": {
@@ -263,11 +263,11 @@
         "Jaccard": 0.4375
       },
       "EDL-ECC": {
-        "1-HL": 0.6799,
-        "SubAcc": 0.1495,
-        "Micro-F1": 0.6591,
-        "Macro-F1": 0.5085,
-        "Jaccard": 0.5196
+        "1-HL": 0.6772,
+        "SubAcc": 0.1513,
+        "Micro-F1": 0.6368,
+        "Macro-F1": 0.4909,
+        "Jaccard": 0.4963
       }
     }
   },
@@ -295,11 +295,11 @@
         "Jaccard": 0.0207
       },
       "EDL-ECC": {
-        "1-HL": 0.008,
-        "SubAcc": 0.0346,
-        "Micro-F1": 0.0235,
-        "Macro-F1": 0.0197,
-        "Jaccard": 0.0307
+        "1-HL": 0.0078,
+        "SubAcc": 0.0305,
+        "Micro-F1": 0.0232,
+        "Macro-F1": 0.0183,
+        "Jaccard": 0.0276
       }
     },
     "Yeast": {
@@ -325,11 +325,11 @@
         "Jaccard": 0.0218
       },
       "EDL-ECC": {
-        "1-HL": 0.0088,
-        "SubAcc": 0.0147,
-        "Micro-F1": 0.0123,
-        "Macro-F1": 0.0099,
-        "Jaccard": 0.0131
+        "1-HL": 0.0073,
+        "SubAcc": 0.0129,
+        "Micro-F1": 0.0103,
+        "Macro-F1": 0.0113,
+        "Jaccard": 0.0126
       }
     },
     "emotions": {
@@ -355,11 +355,11 @@
         "Jaccard": 0.0224
       },
       "EDL-ECC": {
-        "1-HL": 0.006,
-        "SubAcc": 0.04,
-        "Micro-F1": 0.0113,
-        "Macro-F1": 0.0179,
-        "Jaccard": 0.0125
+        "1-HL": 0.0095,
+        "SubAcc": 0.0523,
+        "Micro-F1": 0.012,
+        "Macro-F1": 0.0143,
+        "Jaccard": 0.0202
       }
     },
     "HumanPseAAC": {
@@ -386,10 +386,10 @@
       },
       "EDL-ECC": {
         "1-HL": 0.0021,
-        "SubAcc": 0.0148,
-        "Micro-F1": 0.0112,
-        "Macro-F1": 0.0216,
-        "Jaccard": 0.0157
+        "SubAcc": 0.0092,
+        "Micro-F1": 0.012,
+        "Macro-F1": 0.0267,
+        "Jaccard": 0.0121
       }
     },
     "PlantPseAAC": {
@@ -415,11 +415,11 @@
         "Jaccard": 0.0135
       },
       "EDL-ECC": {
-        "1-HL": 0.0039,
-        "SubAcc": 0.0139,
-        "Micro-F1": 0.015,
-        "Macro-F1": 0.0145,
-        "Jaccard": 0.0096
+        "1-HL": 0.0044,
+        "SubAcc": 0.0217,
+        "Micro-F1": 0.027,
+        "Macro-F1": 0.0265,
+        "Jaccard": 0.0247
       }
     },
     "GpositivePseAAC": {
@@ -445,11 +445,11 @@
         "Jaccard": 0.0297
       },
       "EDL-ECC": {
-        "1-HL": 0.0217,
-        "SubAcc": 0.0482,
-        "Micro-F1": 0.0403,
-        "Macro-F1": 0.0746,
-        "Jaccard": 0.0408
+        "1-HL": 0.0166,
+        "SubAcc": 0.0394,
+        "Micro-F1": 0.032,
+        "Macro-F1": 0.0664,
+        "Jaccard": 0.034
       }
     },
     "VirusPseAAC": {
@@ -475,11 +475,11 @@
         "Jaccard": 0.062
       },
       "EDL-ECC": {
-        "1-HL": 0.0364,
-        "SubAcc": 0.0593,
-        "Micro-F1": 0.097,
-        "Macro-F1": 0.0495,
-        "Jaccard": 0.0763
+        "1-HL": 0.0322,
+        "SubAcc": 0.0752,
+        "Micro-F1": 0.0887,
+        "Macro-F1": 0.0541,
+        "Jaccard": 0.0761
       }
     },
     "Water-quality": {
@@ -505,11 +505,11 @@
         "Jaccard": 0.0036
       },
       "EDL-ECC": {
-        "1-HL": 0.0059,
-        "SubAcc": 0.0114,
-        "Micro-F1": 0.0083,
-        "Macro-F1": 0.0096,
-        "Jaccard": 0.0066
+        "1-HL": 0.0071,
+        "SubAcc": 0.0033,
+        "Micro-F1": 0.0137,
+        "Macro-F1": 0.0143,
+        "Jaccard": 0.015
       }
     },
     "CHD_49": {
@@ -535,11 +535,11 @@
         "Jaccard": 0.0229
       },
       "EDL-ECC": {
-        "1-HL": 0.021,
-        "SubAcc": 0.0396,
-        "Micro-F1": 0.0296,
-        "Macro-F1": 0.0287,
-        "Jaccard": 0.0325
+        "1-HL": 0.0285,
+        "SubAcc": 0.0527,
+        "Micro-F1": 0.0408,
+        "Macro-F1": 0.0368,
+        "Jaccard": 0.0417
       }
     }
   }
