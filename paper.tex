@@ -94,17 +94,17 @@ Unlike standard neural networks using Sigmoid/Softmax that output point probabil
 \end{equation}
 The total evidence strength $S_j = \alpha_{j,0} + \alpha_{j,1}$ determines both the predicted probability and epistemic uncertainty:
 \begin{equation}
-    \hat{p}_j = \frac{\alpha_{j,1}}{S_j}, \qquad u_j = \frac{K}{S_j}
+    \hat{p}_j = \frac{\alpha_{j,1}}{S_j}, \qquad u_j = \frac{2}{S_j}
     \label{eq:edl_outputs}
 \end{equation}
-where $K=2$ for binary tasks. When evidence is minimal ($e_{j,0} \approx e_{j,1} \approx 0$), we have $S_j \to 2$ and $u_j \to 1$, signaling maximal uncertainty. This explicit uncertainty quantification is critical for identifying unreliable predictions.
+where the numerator $2$ represents the number of classes in the binary task. When evidence is minimal ($e_{j,0} \approx e_{j,1} \approx 0$), we have $S_j \to 2$ and $u_j \to 1$, signaling maximal uncertainty. This explicit uncertainty quantification is critical for identifying unreliable predictions.
 
 The EDL loss function combines mean squared error with KL divergence regularization:
 \begin{equation}
-    \mathcal{L}_{\mathrm{EDL}} = \sum_{j=1}^{K} w_j \left[ \mathcal{L}_{\mathrm{MSE}}^{(j)} + \lambda_t \mathcal{L}_{\mathrm{KL}}^{(j)} \right]
+    \mathcal{L}_{\mathrm{EDL}} = \sum_{j=1}^{K} \left[ w_j \mathcal{L}_{\mathrm{MSE}}^{(j)} + \lambda_t \mathcal{L}_{\mathrm{KL}}^{(j)} \right]
     \label{eq:edl_loss_compact}
 \end{equation}
-where $w_j$ provides label-specific reweighting to address imbalance, and $\lambda_t$ implements KL annealing to stabilize early training~\cite{sensoy2018evidential}.
+where $w_j$ penalizes positive class errors in the mean squared error component to address imbalance, and $\lambda_t$ implements KL annealing to stabilize early training~\cite{sensoy2018evidential}.
 
 \subsection{Challenges in Chain-Based MLC}
 
@@ -134,8 +134,8 @@ where $W = 2$ denotes the number of classes in the binary setting. This formulat
 \subsection{Evidential Deep Learning Loss Function} 
 For multi-label classification, the loss function is constructed by integrating the Mean Squared Error over the Dirichlet distribution $\mathrm{Dir}(\mathbf{p}_j \mid \boldsymbol{\alpha}_j)$, augmented with a Kullback-Leibler (KL) divergence regularization term across all $L$ labels:
 \begin{equation}
-    \mathcal{L}_{\mathrm{EDL}} = \sum_{j=1}^{L}\; w_j \left[\,
-        \underbrace{\sum_{c=0}^{1}\left(
+    \mathcal{L}_{\mathrm{EDL}} = \sum_{j=1}^{L}\; \left[\,
+        w_j \underbrace{\sum_{c=0}^{1}\left(
             (y_{j,c} - \hat{p}_{j,c})^2 + \frac{\hat{p}_{j,c}(1 - \hat{p}_{j,c})}{S_j + 1}
         \right)}_{\mathcal{L}_{\mathrm{MSE}}^{(j)}}
         +\; \lambda_t\;
@@ -157,7 +157,7 @@ The loss function (\ref{eq:edl_loss}) comprises two distinct components:
         \label{eq:lambda}
     \end{equation}
     allowing the network to first learn discriminative feature representations before the KL regularization takes full effect.
-    \item Label imbalance weight $w_j$: To address the imbalance between positive and negative samples for each label, we set $w_j = 2.0$ for positive instances ($y_j = 1$) and $w_j = 1.0$ for negative instances ($y_j = 0$), in the spirit of Asymmetric Loss.
+    \item Label imbalance weight $w_j$: To address the imbalance between positive and negative samples for each label, the $\mathcal{L}_{\mathrm{MSE}}^{(j)}$ term is weighted by $w_j = 2.0$ for positive instances ($y_j = 1$) and $w_j = 1.0$ for negative instances ($y_j = 0$), enhancing sensitivity to minority labels without distorting the KL regularization objective.
 \end{itemize}
 
 \section{Proposed EDL-ECC Architecture}
@@ -420,23 +420,23 @@ Table~\ref{tab:saturation_analysis} quantifies the saturation effect:
 
 \begin{table}[t]
 \centering
-\caption{Saturation Analysis: Marginal Gains per Chain}
+\caption{Saturation Analysis: Marginal Gains per Chain (Update with actual experimental results)}
 \label{tab:saturation_analysis}
 \small
 \begin{tabular}{ccc}
 \toprule
 \textbf{Transition} & \textbf{$\Delta$ Micro-F1} & \textbf{Status} \\
 \midrule
-$M=1 \to 3$ & +0.0009 & Useful \\
-$M=3 \to 5$ & +0.0011 & Useful \\
-$M=5 \to 10$ & +0.0011 & Useful \\
-$M=10 \to 20$ & $-0.0006$ & Saturated \\
-$M=20 \to 30$ & $-0.0006$ & Saturated \\
+$M=1 \to 3$ & [UPDATE: $\Delta$ value] & [Useful/Saturated] \\
+$M=3 \to 5$ & [UPDATE: $\Delta$ value] & [Useful/Saturated] \\
+$M=5 \to 10$ & [UPDATE: $\Delta$ value] & [Useful/Saturated] \\
+$M=10 \to 20$ & [UPDATE: $\Delta$ value] & [Useful/Saturated] \\
+$M=20 \to 30$ & [UPDATE: $\Delta$ value] & [Useful/Saturated] \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\textbf{Interpretation:} EDL-ECC achieves both low bias (via uncertainty gating) and low variance (via compact ensemble) at $M=3$-$10$, making larger ensembles redundant.
+\textbf{Interpretation:} [UPDATE: Analyze saturation pattern from actual results. Expected: EDL-ECC achieves low bias (via uncertainty gating) and low variance (via compact ensemble) at $M=3$-$10$, making larger ensembles redundant.]
 
 \subsection{Computational Efficiency Analysis}
 
@@ -444,39 +444,39 @@ Table~\ref{tab:efficiency} compares computational costs:
 
 \begin{table}[t]
 \centering
-\caption{Computational Cost Comparison (Scene Dataset)}
+\caption{Computational Cost Comparison (Scene Dataset) - Updated with actual measurements}
 \label{tab:efficiency}
 \small
 \begin{tabular}{lcc}
 \toprule
 \textbf{Method} & \textbf{Training Time} & \textbf{Speedup} \\
 \midrule
-ECC ($M=30$) & 12.3 hours & 1.0$\times$ \\
-EDL-ECC ($M=10$) & 4.1 hours & 3.0$\times$ \\
-EDL-ECC ($M=3$) & 1.4 hours & \textbf{8.8$\times$} \\
+ECC ($M=30$) & [UPDATE: actual hours] & 1.0$\times$ \\
+EDL-ECC ($M=10$) & [UPDATE: actual hours] & [Calculate] \\
+EDL-ECC ($M=3$) & [UPDATE: actual hours] & [Calculate] \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\textbf{Cost breakdown:} EDL modules add $\sim$20\% overhead per chain compared to Logistic Regression, but the $70$-$90\%$ reduction in required chains yields net 3$\times$-9$\times$ speedup.
+\textbf{Cost breakdown:} EDL modules add $\sim$20\% overhead per chain compared to Logistic Regression, but the $70$-$90\%$ reduction in required chains yields net speedup. [UPDATE: Add actual measured speedup values and cost analysis]
 
 \subsection{Contribution Decomposition: Uncertainty vs. Ensemble}
 
-To isolate the contribution of uncertainty quantification versus ensemble diversity, we analyze:
+To isolate the contribution of uncertainty quantification versus ensemble diversity, we analyze ablation results:
 
 \begin{itemize}
-    \item \textbf{EDL single chain ($M=1$):} Micro-F1 = 0.5906 (uncertainty only)
-    \item \textbf{ECC ($M=30$):} Micro-F1 = 0.5304 (ensemble only)
-    \item \textbf{EDL-ECC ($M=10$):} Micro-F1 = 0.5937 (both)
+    \item \textbf{EDL single chain ($M=1$):} Provides uncertainty quantification only
+    \item \textbf{ECC ($M=30$):} Provides ensemble diversity only
+    \item \textbf{EDL-ECC ($M=10$):} Combines both components
 \end{itemize}
 
-\textbf{Contribution breakdown:}
+\textbf{Contribution breakdown (to be updated with actual experimental results):}
 \begin{align}
-\text{Uncertainty gain:} &\quad 0.5906 - 0.5304 = 0.0602 \quad (94.8\%) \\
-\text{Ensemble gain:} &\quad 0.5937 - 0.5906 = 0.0031 \quad (5.2\%)
+\text{Uncertainty contribution:} &\quad \text{[UPDATE: Micro-F1 from EDL-M1]} - \text{[Micro-F1 from ECC-M30]} \\
+\text{Ensemble contribution:} &\quad \text{[UPDATE: Micro-F1 from EDL-ECC-M10]} - \text{[Micro-F1 from EDL-M1]}
 \end{align}
 
-This confirms that \textit{uncertainty quantification} is the primary driver of improvement, with ensemble diversity providing marginal refinement. The observation aligns with your advisor's insight that EDL already functions as a compact ensemble, making explicit ensembling less critical.
+\textbf{Expected observation:} Based on theoretical analysis and prior EDL studies, uncertainty quantification typically dominates ensemble diversity for this task, suggesting that EDL already functions as a compact ensemble via Dirichlet credal sets, making explicit ensembling less critical for performance gains.
 
 \subsection{Limitations and Future Work}
 

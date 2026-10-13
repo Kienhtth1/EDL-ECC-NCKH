@@ -33,7 +33,9 @@ def edl_binary_mse_loss(alpha, target, epoch, annealing_step=5):
     mse       = ((y - p) ** 2).sum(dim=-1)
     var_term  = (p * (1.0 - p) / (S + 1.0)).sum(dim=-1)
     pos_w     = torch.where(target > 0, 2.0, 1.0)
-    kl        = dirichlet_kl_binary(alpha)
+    # Loại bỏ chứng cứ của lớp nhãn đúng trước khi tính KL (theo Sensoy et al., 2018)
+    alpha_tilde = y + (1.0 - y) * alpha
+    kl        = dirichlet_kl_binary(alpha_tilde)
     lambda_t  = min(1.0, epoch / max(1, annealing_step))
     return ((mse + var_term) * pos_w + lambda_t * kl).mean()
 

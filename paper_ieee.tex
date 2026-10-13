@@ -67,18 +67,32 @@ h_{\pi_j}(\mathbf{x}) = f_{\pi_j}(\mathbf{x}, \hat{y}_{\pi_1}, \ldots, \hat{y}_{
 capturing dependencies but suffering error propagation. \textbf{Label Powerset} treats combinations as atomic classes, failing to scale. \textbf{ECC} trains $M$ chains with random orderings, reducing variance but not within-chain bias.
 
 \subsection{Evidential Deep Learning}
-
+    
 EDL~\cite{sensoy2018evidential} outputs evidence $\mathbf{e} \ge \mathbf{0}$ forming Dirichlet parameters $\boldsymbol{\alpha} = \mathbf{e} + 1$. For binary label $j$:
 \begin{equation}
 \hat{p}_j = \frac{\alpha_{j,1}}{S_j}, \quad u_j = \frac{2}{S_j}, \quad S_j = \alpha_{j,0} + \alpha_{j,1}
 \label{eq:edl_basic}
 \end{equation}
-When evidence is low, $S_j \to 2$ drives $u_j \to 1$. Loss combines MSE with KL regularization:
+When evidence is low, $S_j \to 2$ drives $u_j \to 1$. The loss combines MSE with KL regularization:
 \begin{equation}
-\mathcal{L}_{\mathrm{EDL}} = \sum_{j=1}^{K} w_j \left[ \mathcal{L}_{\mathrm{MSE}}^{(j)} + \lambda_t \mathcal{L}_{\mathrm{KL}}^{(j)} \right]
+\mathcal{L}_{\mathrm{EDL}} = \sum_{j=1}^{K} \left[ w_j \mathcal{L}_{\mathrm{MSE}}^{(j)} + \lambda_t \mathcal{L}_{\mathrm{KL}}^{(j)} \right]
 \label{eq:edl_loss}
 \end{equation}
-where $w_j$ handles imbalance and $\lambda_t$ anneals KL weight.
+where $w_j = 2.0$ for positive ($y_j=1$) and $w_j=1.0$ for negative ($y_j=0$) to handle class imbalance. The MSE loss is computed as:
+\begin{equation}
+\mathcal{L}_{\mathrm{MSE}}^{(j)} = \sum_{c=0}^{1}\left((y_{j,c} - \hat{p}_{j,c})^2 + \frac{\hat{p}_{j,c}(1-\hat{p}_{j,c})}{S_j+1}\right)
+\label{eq:mse_detailed}
+\end{equation}
+with $y_{j,0}=1-y_j$ and $y_{j,1}=y_j$. The KL regularization uses adjusted Dirichlet parameters where evidence for the ground-truth class is removed:
+\begin{equation}
+\tilde{\alpha}_{j,c} = y_{j,c} + (1-y_{j,c})\alpha_{j,c}, \quad c \in \{0,1\}
+\label{eq:alpha_tilde}
+\end{equation}
+\begin{equation}
+\mathcal{L}_{\mathrm{KL}}^{(j)} = D_{\mathrm{KL}}[\mathrm{Dir}(\tilde{\boldsymbol{\alpha}}_j) \| \mathrm{Dir}(\boldsymbol{1})]
+\label{eq:kl_reg}
+\end{equation}
+The annealing coefficient $\lambda_t = \min(1.0, t/T_{\mathrm{warmup}})$ gradually increases from 0 to 1 over epochs, allowing the network to learn discriminative features before KL regularization takes effect.
 
 \section{Theoretical Analysis}
 

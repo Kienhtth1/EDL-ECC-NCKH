@@ -94,17 +94,17 @@ Không giống như mạng neural chuẩn sử dụng Sigmoid/Softmax xuất ra 
 \end{equation}
 Tổng cường độ chứng cứ $S_j = \alpha_{j,0} + \alpha_{j,1}$ xác định cả xác suất dự đoán và độ bất định tri thức:
 \begin{equation}
-    \hat{p}_j = \frac{\alpha_{j,1}}{S_j}, \qquad u_j = \frac{K}{S_j}
+    \hat{p}_j = \frac{\alpha_{j,1}}{S_j}, \qquad u_j = \frac{2}{S_j}
     \label{eq:edl_outputs}
 \end{equation}
-trong đó $K=2$ cho tác vụ nhị phân. Khi chứng cứ là tối thiểu ($e_{j,0} \approx e_{j,1} \approx 0$), chúng ta có $S_j \to 2$ và $u_j \to 1$, báo hiệu độ bất định tối đa. Định lượng độ bất định rõ ràng này là quan trọng để xác định các dự đoán không đáng tin cậy.
+trong đó số 2 biểu thị số lớp trong tác vụ nhị phân. Khi chứng cứ là tối thiểu ($e_{j,0} \approx e_{j,1} \approx 0$), chúng ta có $S_j \to 2$ và $u_j \to 1$, báo hiệu độ bất định tối đa. Định lượng độ bất định rõ ràng này là quan trọng để xác định các dự đoán không đáng tin cậy.
 
 Hàm mất mát EDL kết hợp sai số bình phương trung bình với điều chuẩn phân kỳ KL:
 \begin{equation}
-    \mathcal{L}_{\mathrm{EDL}} = \sum_{j=1}^{K} w_j \left[ \mathcal{L}_{\mathrm{MSE}}^{(j)} + \lambda_t \mathcal{L}_{\mathrm{KL}}^{(j)} \right]
+    \mathcal{L}_{\mathrm{EDL}} = \sum_{j=1}^{K} \left[ w_j \mathcal{L}_{\mathrm{MSE}}^{(j)} + \lambda_t \mathcal{L}_{\mathrm{KL}}^{(j)} \right]
     \label{eq:edl_loss_compact}
 \end{equation}
-trong đó $w_j$ cung cấp trọng số lại theo nhãn để giải quyết mất cân bằng, và $\lambda_t$ thực hiện ủ KL để ổn định huấn luyện sớm~\cite{sensoy2018evidential}.
+trong đó $w_j$ cung cấp trọng số phạt cho lớp dương trong thành phần sai số bình phương để giải quyết mất cân bằng nhãn, và $\lambda_t$ thực hiện ủ KL để ổn định huấn luyện sớm~\cite{sensoy2018evidential}.
 
 \subsection{Thách thức trong MLC dựa trên Chuỗi}
 
@@ -134,20 +134,28 @@ trong đó $W = 2$ biểu thị số lớp trong cài đặt nhị phân. Công 
 \subsection{Hàm Mất mát Học Sâu Chứng cứ} 
 Đối với phân loại đa nhãn, hàm mất mát được xây dựng bằng cách tích hợp Sai số Bình phương Trung bình trên phân phối Dirichlet $\mathrm{Dir}(\mathbf{p}_j \mid \boldsymbol{\alpha}_j)$, được tăng cường bằng số hạng điều chuẩn phân kỳ Kullback-Leibler (KL) trên tất cả $L$ nhãn:
 \begin{equation}
-    \mathcal{L}_{\mathrm{EDL}} = \sum_{j=1}^{L}\; w_j \left[\,
-        \underbrace{\sum_{c=0}^{1}\left(
+    \mathcal{L}_{\mathrm{EDL}} = \sum_{j=1}^{L}\; \left[\,
+        w_j \underbrace{\sum_{c=0}^{1}\left(
             (y_{j,c} - \hat{p}_{j,c})^2 + \frac{\hat{p}_{j,c}(1 - \hat{p}_{j,c})}{S_j + 1}
         \right)}_{\mathcal{L}_{\mathrm{MSE}}^{(j)}}
         +\; \lambda_t\;
-        \underbrace{D_{\mathrm{KL}}\!\left[\mathrm{Dir}(\tilde{\boldsymbol{\alpha}}_j) \;\|\; \mathrm{Dir}(\mathbf{1})\right]}_{\mathcal{L}_{\mathrm{KL}}^{(j)}}
+        \underbrace{D_{\mathrm{KL}}\!\left[\mathrm{Dir}(\tilde{\boldsymbol{\alpha}}_j) \;\|\; \mathrm{Dir}(\boldsymbol{1})\right]}_{\mathcal{L}_{\mathrm{KL}}^{(j)}}
     \right]
     \label{eq:edl_loss}
 \end{equation}
-trong đó $y_{j,0} = 1 - y_j$ và $y_{j,1} = y_j$ biểu diễn mã hóa one-hot nhị phân cho nhãn $j$; $\tilde{\boldsymbol{\alpha}}_j$ là vector tham số Dirichlet với chứng cứ cho lớp \textit{ground-truth} được loại bỏ:
-\begin{equation}
-    \tilde{\alpha}_{j,c} = y_{j,c} + (1 - y_{j,c})\,\alpha_{j,c}, \quad c \in \{0, 1\}
-    \label{eq:alpha_tilde}
-\end{equation>
+trong đó:
+\begin{itemize}
+    \item $y_{j,0} = 1 - y_j$ và $y_{j,1} = y_j$ biểu diễn mã hóa one-hot nhị phân cho nhãn $j$
+    \item $\hat{p}_{j,c} = \frac{\alpha_{j,c}}{S_j}$ là xác suất dự đoán cho lớp $c$
+    \item $S_j = \sum_c \alpha_{j,c}$ là tổng cường độ chứng cứ
+    \item $w_j = 2.0$ nếu $y_j = 1$ (positive), $w_j = 1.0$ nếu $y_j = 0$ (negative) để xử lý mất cân bằng nhãn
+    \item $\tilde{\boldsymbol{\alpha}}_j$ là vector tham số Dirichlet với chứng cứ cho lớp \textit{ground-truth} được loại bỏ:
+    \begin{equation}
+        \tilde{\alpha}_{j,c} = y_{j,c} + (1 - y_{j,c})\,\alpha_{j,c}, \quad c \in \{0, 1\}
+        \label{eq:alpha_tilde}
+    \end{equation}
+    \item $\lambda_t = \min(1.0, \frac{t}{T_{\mathrm{warmup}}})$ là hệ số ủ KL tăng dần từ 0 đến 1
+\end{itemize}
 
 Hàm mất mát (\ref{eq:edl_loss}) bao gồm hai thành phần riêng biệt:
 \begin{itemize}
@@ -158,7 +166,7 @@ Hàm mất mát (\ref{eq:edl_loss}) bao gồm hai thành phần riêng biệt:
         \label{eq:lambda}
     \end{equation}
     cho phép mạng trước tiên học các biểu diễn đặc trưng phân biệt trước khi điều chuẩn KL có hiệu lực đầy đủ.
-    \item Trọng số mất cân bằng nhãn $w_j$: Để giải quyết mất cân bằng giữa các mẫu dương và âm cho mỗi nhãn, chúng tôi đặt $w_j = 2.0$ cho các thực thể dương ($y_j = 1$) và $w_j = 1.0$ cho các thực thể âm ($y_j = 0$), theo tinh thần của Asymmetric Loss.
+    \item Trọng số mất cân bằng nhãn $w_j$: Để giải quyết mất cân bằng giữa các mẫu dương và âm cho mỗi nhãn, thành phần $\mathcal{L}_{\mathrm{MSE}}^{(j)}$ được nhân với trọng số $w_j = 2.0$ cho các thực thể dương ($y_j = 1$) và $w_j = 1.0$ cho các thực thể âm ($y_j = 0$), giúp tăng độ nhạy đối với các nhãn thiểu số mà không làm sai lệch mục tiêu điều chuẩn KL.
 \end{itemize}
 
 \section{Kiến trúc EDL-ECC Đề xuất}
@@ -421,23 +429,23 @@ Bảng~\ref{tab:saturation_analysis} định lượng hiệu ứng bão hòa:
 
 \begin{table}[t]
 \centering
-\caption{Phân tích Bão hòa: Cải thiện Biên theo Chuỗi}
+\caption{Phân tích Bão hòa: Cải thiện Biên theo Chuỗi (Cập nhật với kết quả thực nghiệm)}
 \label{tab:saturation_analysis}
 \small
 \begin{tabular}{ccc}
 \toprule
 \textbf{Chuyển đổi} & \textbf{$\Delta$ Micro-F1} & \textbf{Trạng thái} \\
 \midrule
-$M=1 \to 3$ & +0.0009 & Hữu ích \\
-$M=3 \to 5$ & +0.0011 & Hữu ích \\
-$M=5 \to 10$ & +0.0011 & Hữu ích \\
-$M=10 \to 20$ & $-0.0006$ & Bão hòa \\
-$M=20 \to 30$ & $-0.0006$ & Bão hòa \\
+$M=1 \to 3$ & [CẬP NHẬT: giá trị $\Delta$] & [Hữu ích/Bão hòa] \\
+$M=3 \to 5$ & [CẬP NHẬT: giá trị $\Delta$] & [Hữu ích/Bão hòa] \\
+$M=5 \to 10$ & [CẬP NHẬT: giá trị $\Delta$] & [Hữu ích/Bão hòa] \\
+$M=10 \to 20$ & [CẬP NHẬT: giá trị $\Delta$] & [Hữu ích/Bão hòa] \\
+$M=20 \to 30$ & [CẬP NHẬT: giá trị $\Delta$] & [Hữu ích/Bão hòa] \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\textbf{Diễn giải:} EDL-ECC đạt được cả bias thấp (thông qua cổng độ bất định) và phương sai thấp (thông qua ensemble compact) ở $M=3$-$10$, làm cho các ensemble lớn hơn trở nên dư thừa.
+\textbf{Diễn giải:} [CẬP NHẬT: Phân tích mô hình bão hòa từ kết quả thực tế. Kỳ vọng: EDL-ECC đạt được cả bias thấp (thông qua cổng độ bất định) và phương sai thấp (thông qua ensemble compact) ở $M=3$-$10$, làm cho các ensemble lớn hơn trở nên dư thừa.]
 
 \subsection{Phân tích Hiệu quả Tính toán}
 
@@ -445,39 +453,39 @@ Bảng~\ref{tab:efficiency} so sánh chi phí tính toán:
 
 \begin{table}[t]
 \centering
-\caption{So sánh Chi phí Tính toán (Tập dữ liệu Scene)}
+\caption{So sánh Chi phí Tính toán (Tập dữ liệu Scene) - Cập nhật với kết quả đo đạc thực tế}
 \label{tab:efficiency}
 \small
 \begin{tabular}{lcc}
 \toprule
 \textbf{Phương pháp} & \textbf{Thời gian Huấn luyện} & \textbf{Tăng tốc} \\
 \midrule
-ECC ($M=30$) & 12.3 giờ & 1.0$\times$ \\
-EDL-ECC ($M=10$) & 4.1 giờ & 3.0$\times$ \\
-EDL-ECC ($M=3$) & 1.4 giờ & \textbf{8.8$\times$} \\
+ECC ($M=30$) & [CẬP NHẬT: số giờ thực tế] & 1.0$\times$ \\
+EDL-ECC ($M=10$) & [CẬP NHẬT: số giờ thực tế] & [Tính toán] \\
+EDL-ECC ($M=3$) & [CẬP NHẬT: số giờ thực tế] & [Tính toán] \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\textbf{Phân tích chi phí:} Các module EDL thêm khoảng 20\% overhead trên mỗi chuỗi so với Hồi quy Logistic, nhưng việc giảm 70--90\% số chuỗi cần thiết mang lại tăng tốc ròng 3$\times$-9$\times$.
+\textbf{Phân tích chi phí:} Các module EDL thêm khoảng 20\% overhead trên mỗi chuỗi so với Hồi quy Logistic, nhưng việc giảm 70--90\% số chuỗi cần thiết mang lại tăng tốc ròng. [CẬP NHẬT: Thêm giá trị tăng tốc đo đạc thực tế và phân tích chi phí]
 
 \subsection{Phân rã Đóng góp: Độ bất định so với Ensemble}
 
-Để cô lập đóng góp của định lượng độ bất định so với đa dạng ensemble, chúng tôi phân tích:
+Để cô lập đóng góp của định lượng độ bất định so với đa dạng ensemble, chúng tôi phân tích kết quả bài học:
 
 \begin{itemize}
-    \item \textbf{EDL chuỗi đơn ($M=1$):} Micro-F1 = 0.5906 (chỉ độ bất định)
-    \item \textbf{ECC ($M=30$):} Micro-F1 = 0.5304 (chỉ ensemble)
-    \item \textbf{EDL-ECC ($M=10$):} Micro-F1 = 0.5937 (cả hai)
+    \item \textbf{EDL chuỗi đơn ($M=1$):} Cung cấp định lượng độ bất định chỉ
+    \item \textbf{ECC ($M=30$):} Cung cấp đa dạng ensemble chỉ
+    \item \textbf{EDL-ECC ($M=10$):} Kết hợp cả hai thành phần
 \end{itemize}
 
-\textbf{Phân tích đóng góp:}
+\textbf{Phân tích đóng góp (cần cập nhật với kết quả thực nghiệm):}
 \begin{align}
-\text{Cải thiện từ độ bất định:} &\quad 0.5906 - 0.5304 = 0.0602 \quad (94.8\%) \\
-\text{Cải thiện từ ensemble:} &\quad 0.5937 - 0.5906 = 0.0031 \quad (5.2\%)
+\text{Đóng góp độ bất định:} &\quad \text{[CẬP NHẬT: Micro-F1 từ EDL-M1]} - \text{[Micro-F1 từ ECC-M30]} \\
+\text{Đóng góp ensemble:} &\quad \text{[CẬP NHẬT: Micro-F1 từ EDL-ECC-M10]} - \text{[Micro-F1 từ EDL-M1]}
 \end{align}
 
-Điều này xác nhận rằng \textit{định lượng độ bất định} là động lực cải thiện chính, với đa dạng ensemble cung cấp tinh chỉnh biên. Quan sát này phù hợp với nhận xét của thầy hướng dẫn rằng EDL đã hoạt động như một ensemble compact, làm cho ensemble rõ ràng trở nên ít quan trọng hơn.
+\textbf{Kỳ vọng quan sát:} Dựa trên phân tích lý thuyết và các nghiên cứu EDL trước đây, định lượng độ bất định thường chiếm ưu thế so với đa dạng ensemble cho tác vụ này, cho thấy rằng EDL đã hoạt động như một ensemble compact thông qua credal sets Dirichlet, làm cho ensemble rõ ràng ít quan trọng hơn để cải thiện hiệu suất.
 
 \subsection{Hạn chế và Công việc Tương lai}
 
