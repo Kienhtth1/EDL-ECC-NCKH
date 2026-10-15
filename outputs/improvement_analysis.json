@@ -1,0 +1,108 @@
+{
+  "average_improvement": 0.055233333333333356,
+  "percentage_improvement": 10.41439705019694,
+  "edl_wins": 8,
+  "best_dataset": "Scene",
+  "best_improvement": 0.1106,
+  "datasets": [
+    {
+      "Dataset": "Scene",
+      "BR Micro-F1": 0.6561,
+      "CC Micro-F1": 0.6574,
+      "ECC Micro-F1": 0.6731,
+      "EDL-ECC Micro-F1": 0.7837,
+      "Winner": "EDL-ECC",
+      "Delta(EDL - ECC)": 0.1106,
+      "Delta(EDL - CC)": 0.1263,
+      "Delta(EDL - BR)": 0.1276
+    },
+    {
+      "Dataset": "Yeast",
+      "BR Micro-F1": 0.5403,
+      "CC Micro-F1": 0.5144,
+      "ECC Micro-F1": 0.5389,
+      "EDL-ECC Micro-F1": 0.6422,
+      "Winner": "EDL-ECC",
+      "Delta(EDL - ECC)": 0.1033,
+      "Delta(EDL - CC)": 0.1278,
+      "Delta(EDL - BR)": 0.1019
+    },
+    {
+      "Dataset": "emotions",
+      "BR Micro-F1": 0.6828,
+      "CC Micro-F1": 0.6757,
+      "ECC Micro-F1": 0.6785,
+      "EDL-ECC Micro-F1": 0.6797,
+      "Winner": "BR",
+      "Delta(EDL - ECC)": 0.0012,
+      "Delta(EDL - CC)": 0.004,
+      "Delta(EDL - BR)": -0.0031
+    },
+    {
+      "Dataset": "HumanPseAAC",
+      "BR Micro-F1": 0.3356,
+      "CC Micro-F1": 0.2976,
+      "ECC Micro-F1": 0.3006,
+      "EDL-ECC Micro-F1": 0.383,
+      "Winner": "EDL-ECC",
+      "Delta(EDL - ECC)": 0.0824,
+      "Delta(EDL - CC)": 0.0854,
+      "Delta(EDL - BR)": 0.0474
+    },
+    {
+      "Dataset": "PlantPseAAC",
+      "BR Micro-F1": 0.3042,
+      "CC Micro-F1": 0.3051,
+      "ECC Micro-F1": 0.3079,
+      "EDL-ECC Micro-F1": 0.3387,
+      "Winner": "EDL-ECC",
+      "Delta(EDL - ECC)": 0.0308,
+      "Delta(EDL - CC)": 0.0336,
+      "Delta(EDL - BR)": 0.0345
+    },
+    {
+      "Dataset": "GpositivePseAAC",
+      "BR Micro-F1": 0.6429,
+      "CC Micro-F1": 0.6504,
+      "ECC Micro-F1": 0.6516,
+      "EDL-ECC Micro-F1": 0.6946,
+      "Winner": "EDL-ECC",
+      "Delta(EDL - ECC)": 0.043,
+      "Delta(EDL - CC)": 0.0442,
+      "Delta(EDL - BR)": 0.0517
+    },
+    {
+      "Dataset": "VirusPseAAC",
+      "BR Micro-F1": 0.4614,
+      "CC Micro-F1": 0.4624,
+      "ECC Micro-F1": 0.4624,
+      "EDL-ECC Micro-F1": 0.4812,
+      "Winner": "EDL-ECC",
+      "Delta(EDL - ECC)": 0.0188,
+      "Delta(EDL - CC)": 0.0188,
+      "Delta(EDL - BR)": 0.0198
+    },
+    {
+      "Dataset": "Water-quality",
+      "BR Micro-F1": 0.5747,
+      "CC Micro-F1": 0.5758,
+      "ECC Micro-F1": 0.5824,
+      "EDL-ECC Micro-F1": 0.6132,
+      "Winner": "EDL-ECC",
+      "Delta(EDL - ECC)": 0.0308,
+      "Delta(EDL - CC)": 0.0374,
+      "Delta(EDL - BR)": 0.0385
+    },
+    {
+      "Dataset": "CHD_49",
+      "BR Micro-F1": 0.5829,
+      "CC Micro-F1": 0.5846,
+      "ECC Micro-F1": 0.5778,
+      "EDL-ECC Micro-F1": 0.654,
+      "Winner": "EDL-ECC",
+      "Delta(EDL - ECC)": 0.0762,
+      "Delta(EDL - CC)": 0.0694,
+      "Delta(EDL - BR)": 0.0711
+    }
+  ]
+}
