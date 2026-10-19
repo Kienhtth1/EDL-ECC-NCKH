@@ -1,0 +1,43 @@
+[DATASET] HumanPseAAC  |  Samples: 3106  Features: 440  Labels: 14
+13804.8s	136	──────────────────────────────────────────────────────────────────────────────────────────
+13807.4s	137	    [Fold 1] Training BR (LogReg)... F1=0.3510
+13819.8s	138	    [Fold 1] Training CC (LogReg)... F1=0.2880
+14061.2s	139	    [Fold 1] Training ECC (LogReg, M=20)... F1=0.3063
+14178.3s	140	    [Fold 1] Training NN-CC (NN, no uncertainty)... F1=0.3807
+16491.3s	141	    [Fold 1] Training NN-ECC (NN, M=20, no uncertainty)... F1=0.3783
+20122.9s	142	    [Fold 1] Training EDL-ECC (EDL+Unc, M=20)... F1=0.3785
+20122.9s	143	  Fold 1/5 [6318.0s] Summary:
+20122.9s	144	    BR=0.3510  CC=0.2880  ECC=0.3063
+20122.9s	145	    NN-CC=0.3807  NN-ECC=0.3783  EDL-ECC=0.3785
+20125.6s	146	    [Fold 2] Training BR (LogReg)... F1=0.3391
+20137.3s	147	    [Fold 2] Training CC (LogReg)... F1=0.3259
+20347.2s	148	    [Fold 2] Training ECC (LogReg, M=20)... F1=0.3212
+20465.1s	149	    [Fold 2] Training NN-CC (NN, no uncertainty)... F1=0.3929
+22792.6s	150	    [Fold 2] Training NN-ECC (NN, M=20, no uncertainty)... F1=0.4099
+26429.3s	151	    [Fold 2] Training EDL-ECC (EDL+Unc, M=20)... F1=0.4074
+26429.3s	152	  Fold 2/5 [6306.4s] Summary:
+26429.3s	153	    BR=0.3391  CC=0.3259  ECC=0.3212
+26429.3s	154	    NN-CC=0.3929  NN-ECC=0.4099  EDL-ECC=0.4074
+26432.0s	155	    [Fold 3] Training BR (LogReg)... F1=0.3261
+26442.5s	156	    [Fold 3] Training CC (LogReg)... F1=0.2773
+26676.1s	157	    [Fold 3] Training ECC (LogReg, M=20)... F1=0.2875
+26793.1s	158	    [Fold 3] Training NN-CC (NN, no uncertainty)... F1=0.3311
+29111.5s	159	    [Fold 3] Training NN-ECC (NN, M=20, no uncertainty)... F1=0.3627
+32751.3s	160	    [Fold 3] Training EDL-ECC (EDL+Unc, M=20)... F1=0.3701
+32751.3s	161	  Fold 3/5 [6322.0s] Summary:
+32751.3s	162	    BR=0.3261  CC=0.2773  ECC=0.2875
+32751.3s	163	    NN-CC=0.3311  NN-ECC=0.3627  EDL-ECC=0.3701
+32753.9s	164	    [Fold 4] Training BR (LogReg)... F1=0.3268
+32767.2s	165	    [Fold 4] Training CC (LogReg)... F1=0.2840
+32997.2s	166	    [Fold 4] Training ECC (LogReg, M=20)... F1=0.2915
+33113.5s	167	    [Fold 4] Training NN-CC (NN, no uncertainty)... F1=0.3652
+35489.9s	168	    [Fold 4] Training NN-ECC (NN, M=20, no uncertainty)... F1=0.3635
+39213.9s	169	    [Fold 4] Training EDL-ECC (EDL+Unc, M=20)... F1=0.3699
+39213.9s	170	  Fold 4/5 [6462.5s] Summary:
+39213.9s	171	    BR=0.3268  CC=0.2840  ECC=0.2915
+39213.9s	172	    NN-CC=0.3652  NN-ECC=0.3635  EDL-ECC=0.3699
+39216.5s	173	    [Fold 5] Training BR (LogReg)... F1=0.3351
+39227.6s	174	    [Fold 5] Training CC (LogReg)... F1=0.3127
+39454.5s	175	    [Fold 5] Training ECC (LogReg, M=20)... F1=0.3144
+39572.6s	176	    [Fold 5] Training NN-CC (NN, no uncertainty)... F1=0.3805
+41926.5s	177	    [Fold 5] Training NN-ECC (NN, M=20, no uncertainty)... F1=0.3955
