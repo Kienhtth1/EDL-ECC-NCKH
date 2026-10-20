@@ -228,9 +228,7 @@ def load_arff(path, num_labels, label_location=None):
 
 
 def run():
-    print("=" * 70)
     print(f"  BR vs CC vs ECC (M={N_CHAINS}) vs EDL-ECC (M={N_CHAINS}) | 5-Fold CV")
-    print("=" * 70)
     print(f"  Output directory: {OUTPUTS_DIR.resolve()}\n")
 
     all_results     = {}
@@ -258,10 +256,7 @@ def run():
             torch.cuda.manual_seed_all(SEED)
 
         fold_scores = {m: [] for m in models_to_run}
-
-        print(f"\n{'─'*70}")
         print(f"  [DATASET] {ds_name}  |  Samples: {len(X)}  Features: {X.shape[1]}  Labels: {num_labels}")
-        print(f"{'─'*70}")
 
         for fold, (tr_idx, va_idx) in enumerate(kf.split(X)):
             X_tr, X_va = X[tr_idx], X[va_idx]
@@ -355,21 +350,14 @@ def run():
             'CC Micro-F1':      cv,
             'ECC Micro-F1':     ecv,
             'EDL-ECC Micro-F1': edv,
-            'Winner':           winner,
-            'Delta(EDL - ECC)': round(edv - ecv, 4),
-            'Delta(EDL - CC)':  round(edv - cv, 4),
-            'Delta(EDL - BR)':  round(edv - bv, 4),
         })
 
 
     summary_df = pd.DataFrame(summary_rows)
     summary_df.to_csv(OUTPUTS_DIR / 'overall_summary_table.csv', index=False)
 
-    print(f"\n{'='*75}")
-    print("   MICRO-F1 in all dataset")
-    print(f"{'='*75}")
+    print("MICRO-F1 in all dataset")
     print(summary_df.to_string(index=False))
-    print(f"{'='*75}")
 
     out_json = OUTPUTS_DIR / 'results_run.json'
     out_json.write_text(

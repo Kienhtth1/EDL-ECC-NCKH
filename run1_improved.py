@@ -63,9 +63,6 @@ else:
     device = torch.device('cpu')
     print("Device: CPU\n")
 
-# =============================================================================
-# EDL Components
-# =============================================================================
 
 def dirichlet_kl_binary(alpha):
     beta    = torch.ones_like(alpha)
@@ -99,9 +96,6 @@ def predict_edl_binary(alpha):
     u     = 2.0 / S
     return p_pos, u
 
-# =============================================================================
-# Standard NN Loss (for NN-CC/NN-ECC)
-# =============================================================================
 
 def standard_nn_loss(pred, target):
     """BCE loss with class weighting for standard NN"""
@@ -109,9 +103,6 @@ def standard_nn_loss(pred, target):
     bce = F.binary_cross_entropy(pred, target.float(), reduction='none')
     return (bce * pos_w).mean()
 
-# =============================================================================
-# Model Architectures
-# =============================================================================
 
 class EDLModel(nn.Module):
     """EDL Model with Dirichlet output"""
@@ -142,9 +133,6 @@ class StandardNNModel(nn.Module):
     def forward(self, x):
         return torch.sigmoid(self.net(x))
 
-# =============================================================================
-# NN-CC: Neural Network Classifier Chains (Single Chain, No EDL)
-# =============================================================================
 
 class NN_CC:
     """Standard NN-based Classifier Chain (NO EDL, NO Uncertainty)"""
@@ -203,9 +191,6 @@ class NN_CC:
         proba = self.predict_proba(X_val)
         return (proba >= threshold).astype(int)
 
-# =============================================================================
-# NN-ECC: Ensemble of NN Classifier Chains (NO EDL, NO Uncertainty)
-# =============================================================================
 
 class NN_ECC:
     """Ensemble of Standard NN Chains (NO EDL, NO Uncertainty)"""
@@ -231,9 +216,6 @@ class NN_ECC:
         proba = self.predict_proba(X_val)
         return (proba >= threshold).astype(int)
 
-# =============================================================================
-# EDL-ECC: Evidential Deep Learning ECC (With Uncertainty)
-# =============================================================================
 
 class EDL_ECC:
     """EDL-based Ensemble Classifier Chains (WITH Uncertainty)"""
@@ -304,9 +286,6 @@ class EDL_ECC:
         proba = self.predict_proba(X_val)
         return (proba >= threshold).astype(int)
 
-# =============================================================================
-# Evaluation & Utils
-# =============================================================================
 
 def evaluate(y_true, y_pred):
     y_true = y_true.astype(int)
@@ -361,15 +340,10 @@ def load_arff(path, num_labels, label_location=None):
 
     return X, Y, label_names
 
-# =============================================================================
-# Main Training Loop
-# =============================================================================
 
 def run():
-    print("=" * 90)
     print(f"  IMPROVED COMPARISON: BR vs CC vs ECC vs NN-CC vs NN-ECC vs EDL-ECC")
     print(f"  Chains: M={N_CHAINS} | 5-Fold CV")
-    print("=" * 90)
     print(f"  Output directory: {OUTPUTS_DIR.resolve()}\n")
 
     all_results     = {}
@@ -399,9 +373,7 @@ def run():
 
         fold_scores = {m: [] for m in models_to_run}
 
-        print(f"\n{'─'*90}")
         print(f"  [DATASET] {ds_name}  |  Samples: {len(X)}  Features: {X.shape[1]}  Labels: {num_labels}")
-        print(f"{'─'*90}")
 
         for fold, (tr_idx, va_idx) in enumerate(kf.split(X)):
             X_tr, X_va = X[tr_idx], X[va_idx]
@@ -536,15 +508,10 @@ def run():
 
     summary_df = pd.DataFrame(summary_rows)
     summary_df.to_csv(OUTPUTS_DIR / 'overall_summary_table.csv', index=False)
-
-    print(f"\n{'='*100}")
     print("   MICRO-F1 SUMMARY - ALL DATASETS")
-    print(f"{'='*100}")
     print(summary_df.to_string(index=False))
-    print(f"{'='*100}")
 
     # Contribution analysis
-    print("\n" + "="*100)
     print("   CONTRIBUTION ANALYSIS")
     print("="*100)
     avg_br = np.mean([res['BR']['Micro-F1'] for res in all_results.values()])
